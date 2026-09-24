@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "task_id": "prefill-kda",
+  "project_id": "infra-loop-kda",
+  "kind": "prefill",
+  "status": "accepted",
+  "source": {
+    "repository": "https://github.com/Infrawaves/sglang.git",
+    "branch": "kda-base/kimi-k3-prefill",
+    "commit": "8eea3c25a3eaa3c850dbdb0ede2bba7de8f03e93",
+    "availability": "local-history-only; verify or publish the base ref before external reuse"
+  },
+  "base_commit": "8eea3c25a3eaa3c850dbdb0ede2bba7de8f03e93",
+  "kernel_entrypoint": "python/sglang/kernels/ops/attention/fla/kda.py::chunk_kda",
+  "allowed_source_files": [
+    "python/sglang/kernels/ops/attention/fla/kda.py",
+    "python/sglang/kernels/ops/attention/fla/l2norm.py"
+  ],
+  "workload_file": "workloads.resolved.json",
+  "model_profile_file": "model-profile.json",
+  "workload_status": "resolved",
+  "optimization_status": "accepted",
+  "integration_status": "not_applied",
+  "serving_validation": "not_performed",
+  "patch_file": "kernels/chunk-kda/accepted-kernel.patch",
+  "patch_sha256": "eda8c23b63a08d651c321315d2579b396993aece88714758b83170797f1d81cb",
+  "evidence_manifest": "../../../evidence/manifests/prefill-acceptance.json",
+  "next_actions": [
+    "Publish or otherwise make the exact 8eea base ref available",
+    "Apply the patch in an isolated integration worktree",
+    "Verify the real Kimi K3 caller and serving path separately"
+  ],
+  "contract_file": "design/contract.md",
+  "source_trace_file": "design/source-trace.md",
+  "plan_input_file": "design/plan.md"
+}

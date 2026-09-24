@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "task_id": "chunk-gated-delta-h",
+  "project_id": "infra-loop-kda",
+  "kind": "prefill",
+  "status": "prepared",
+  "created_at": "2026-09-23T10:06:58Z",
+  "objective": "Reduce GB300 Kimi K3 prefill latency for chunk_gated_delta_rule_fwd_kernel_h_blockdim64 by lowering register pressure and increasing useful state-kernel parallelism without changing recurrence state semantics.",
+  "source": {
+    "repository": "https://github.com/Infrawaves/sglang.git",
+    "branch": "main",
+    "commit": "9ac2710bd37622f38edb078cc753244a3c38c334",
+    "availability": "verify locally before use; see source-trace.md"
+  },
+  "base_commit": "9ac2710bd37622f38edb078cc753244a3c38c334",
+  "allowed_source_files": [
+    "python/sglang/kernels/ops/attention/fla/chunk_delta_h.py"
+  ],
+  "workload_file": "workloads.resolved.json",
+  "model_profile_file": "model-profile.json",
+  "workload_status": "resolved",
+  "optimization_status": "unresolved",
+  "integration_status": "not_applied",
+  "serving_validation": "not_performed",
+  "contract_file": "contract.md",
+  "source_trace_file": "source-trace.md",
+  "plan_input_file": "plan-input.md",
+  "prompt_file": "prompt.md",
+  "commands": {
+    "validation": "python3 bench/correctness.py --source-root <root> --workloads <workloads> --report <report>",
+    "performance": "python3 bench/benchmark.py --baseline-root <baseline> --candidate-root <candidate> --workloads <workloads> --out <out>"
+  },
+  "promotion": {
+    "rules": [
+      "Validation command passes with zero failures and a non-zero case count.",
+      "Performance evidence is recorded with the exact source commit and workload definition.",
+      "A rejected candidate records the reason instead of being silently discarded."
+    ],
+    "requires_human_review": true
+  },
+  "iteration_policy": {
+    "acceptance_workload": "workloads.resolved.json",
+    "freeze_workload_during_search": true,
+    "on_performance_rejection": "record_candidate_and_continue",
+    "reset_to_base_before_next_candidate": true,
+    "stop_on_performance_rejection": false,
+    "stop_conditions": [
+      "candidate_meets_all_promotion_gates",
+      "configured_round_budget_exhausted",
+      "external_blocker",
+      "explicit_human_contract_decision"
+    ],
+    "bucket_workload_role": "diagnostic_only"
+  },
+  "lineage": {
+    "candidates_file": "candidates.jsonl",
+    "benchmark_log": "benchmark.csv",
+    "draft": "docs/draft.md",
+    "plan": "docs/plan.md",
+    "evidence_dir": "local-evidence"
+  },
+  "workflow": {
+    "source": "kda-basic-flow",
+    "kda_prompt": "external/kda/prompts/basic-flow.md",
+    "kda_prompt_sha256": "0ccd7f7c2a8a09bc1eaca287eb3c0026a99db7033a1a032d50c17f8cff96d038",
+    "kda_commit": "ef6ce617693ef0782b3ecb9f37e39bbf10226a90",
+    "attribution": "NVlabs Kernel Design Agents (Kernel Design Agents workflow, not an SDK). See THIRD_PARTY_NOTICES.md and external/kda/LICENSE."
+  },
+  "next_actions": [
+    "Run k3ctl agent plan --config config/project.local.json --task chunk-gated-delta-h to verify Claude/Humanize readiness.",
+    "Do not start the writer until the task plan and resolved workload are reviewed."
+  ]
+}

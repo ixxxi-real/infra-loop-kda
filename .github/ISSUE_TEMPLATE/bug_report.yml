@@ -1,0 +1,29 @@
+name: Bug report
+description: Report a reproducibility, control-plane or documentation problem.
+title: "[bug] "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not include credentials, private paths, GPU UUIDs or raw profiler reports.
+  - type: input
+    id: commit
+    attributes:
+      label: Commit
+      description: The Infra Loop KDA commit where the problem occurred.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction
+      description: Commands and sanitized output.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected and actual behavior
+    validations:
+      required: true

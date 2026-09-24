@@ -1,0 +1,206 @@
+name: validate
+
+on:
+  push:
+  pull_request:
+
+# Every job here is CPU-only. No GPU, no model call, no API key.
+#
+# Network use is limited and deliberate: the checkout action, the Python setup
+# action, `git submodule update` in the integration job, and pip fetching the
+# build backend (setuptools>=64) for the editable install. The test suites
+# themselves make no network calls.
+#
+# Submodules are deliberately NOT checked out in the primary matrix: a fresh
+# clone must work, and `doctor` must report missing dependencies rather than
+# failing opaquely or resolving them from the parent repository. The suites that
+# genuinely require the pinned Humanize release skip themselves, and a separate
+# job asserts that they are not silently skipping everywhere.
+
+jobs:
+  control:
+    name: control plane (py${{ matrix.python-version }}, no submodules)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # The floor the project supports, and a current release.
+        python-version: ["3.9", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Shell entrypoints parse
+        run: bash -n scripts/doctor.sh scripts/install-skills.sh
+
+      - name: Doctor works without submodules and reports what is missing
+        run: |
+          set -o pipefail
+          # Exit status 1 is expected: the dependencies genuinely are missing.
+          ./scripts/doctor.sh --json > doctor.json || true
+          python3 - <<'PY'
+          import json, sys
+          report = json.load(open("doctor.json"))
+          print("status:", report["status"])
+          print("missing:", report["missing"])
+          assert report["status"] == "failed", (
+              "doctor must report failure when dependencies are absent"
+          )
+          for name in ("dependency-kda", "dependency-humanize"):
+              assert name in report["missing"], (
+                  "%s must be reported missing, not inherited from the parent "
+                  "repository" % name
+              )
+          repo = report["repository"]
+          assert repo["is_own_git_root"], "doctor bound to the wrong Git root"
+          PY
+
+      - name: Validate the public example configuration
+        run: python3 tools/k3ctl.py validate --config config/project.example.json
+
+      - name: Legacy compatibility commands still work
+        run: |
+          python3 tools/k3ctl.py status --config config/project.example.json
+          python3 tools/k3ctl.py task-list --config config/project.example.json
+
+      - name: Control-plane test suite
+        run: python3 -m unittest discover -s tests -v
+
+      - name: Prefill task suites (CPU only)
+        run: |
+          python3 -B -m unittest discover -s projects/kimi-k3/prefill/bench -p 'test_*.py' -v
+          python3 -B -m unittest discover -s projects/kimi-k3/prefill/precision -p 'test_*.py' -v
+
+      - name: Workload example
+        run: |
+          python3 projects/kimi-k3/prefill/scripts/configure_workloads.py \
+            --checkpoint-config projects/kimi-k3/prefill/checkpoint-config.example.json \
+            --deployment projects/kimi-k3/prefill/deployment.example.json \
+            --output /tmp/kimi-k3-workloads.json
+
+      - name: Skill installer writes nothing, including without submodules
+        run: |
+          set -o pipefail
+          before=$(ls -A "$HOME" | sort | sha256sum)
+          # Without submodules the preflight refuses (exit 1). That is correct,
+          # and it must still state that nothing was written rather than leaving
+          # the caller to infer it from the exit code.
+          ./scripts/install-skills.sh > installer.log 2>&1 && rc=0 || rc=$?
+          cat installer.log
+          grep -q "Nothing was written" installer.log \
+            || { echo "installer did not state that nothing was written"; exit 1; }
+          if [ "$rc" -eq 0 ]; then
+            grep -q "check mode" installer.log \
+              || { echo "unexpected success without check mode"; exit 1; }
+          else
+            grep -q "external/kda skills are not present" installer.log \
+              || { echo "unexpected failure reason"; exit 1; }
+          fi
+          after=$(ls -A "$HOME" | sort | sha256sum)
+          [ "$before" = "$after" ] || { echo "installer modified HOME"; exit 1; }
+
+  packaging:
+    name: installed entrypoint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install the package
+        run: python3 -m pip install --no-deps .
+
+      - name: Console script works from a foreign working directory
+        run: |
+          set -o pipefail
+          cd "$(mktemp -d)"
+          # --help must not require a discoverable project root.
+          k3ctl --help | head -3
+          # With an explicit root, real commands work from anywhere.
+          K3_PROJECT_ROOT="$GITHUB_WORKSPACE" k3ctl validate \
+            --config config/project.example.json
+
+      - name: Installed package can import its own modules
+        run: |
+          cd "$(mktemp -d)"
+          python3 -c "import tools.k3.cli, tools.k3.runner, tools.k3.overlay; print('ok')"
+
+      - name: Unrelated directory is refused, not adopted
+        run: |
+          cd "$(mktemp -d)"
+          mkdir tasks
+          # The CLI reports errors as JSON on stdout, so both streams are
+          # captured. Grepping stderr alone would miss the message entirely and
+          # fail a step that is actually behaving correctly.
+          if k3ctl validate --config config/project.example.json > out.log 2>&1; then
+            echo "an unrelated directory was accepted as the project root"
+            cat out.log
+            exit 1
+          fi
+          cat out.log
+          grep -q "cannot locate the infra-loop-kda root" out.log
+
+      - name: Canonical make install path works on this Python
+        run: |
+          # Exercises the documented bootstrap, not just `pip install .`.
+          # On Python 3.12+ the stdlib venv no longer seeds setuptools, so this
+          # step is what catches a broken install target.
+          make install
+          .venv/bin/k3ctl validate --config config/project.example.json
+          .venv/bin/python -c "import tools.k3.cli; print('editable import ok')"
+
+  workflow-integration:
+    name: pinned Humanize hook chain
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Dependencies the hooks require
+        run: |
+          jq --version
+          bash --version | head -1
+
+      - name: Doctor with the agent profile
+        run: ./scripts/doctor.sh --agent-profile || true
+
+      - name: Build and verify the no-commit overlay
+        run: |
+          python3 tools/k3ctl.py overlay build --config config/project.example.json
+          python3 tools/k3ctl.py overlay verify --config config/project.example.json
+
+      - name: Overlay and hook-chain suites must actually run, not skip
+        run: |
+          set -o pipefail
+          python3 -m unittest tests.test_overlay_hooks tests.test_hook_chain -v \
+            2>&1 | tee hooks.log
+          # These suites skip themselves when external/humanize is absent. With
+          # submodules checked out they must really execute, or this job proves
+          # nothing.
+          if grep -qE "skipped=[1-9]" hooks.log; then
+            echo "hook-chain tests skipped with submodules present"; exit 1
+          fi
+          grep -qE "^OK" hooks.log
+
+      - name: Full suite with submodules present
+        run: python3 -m unittest discover -s tests -v
+
+# A note for readers of CI output: the agent and loop tests use synthetic loop
+# directories and mock `claude`/`codex` executables. A fixture loop reaching
+# `complete-state.md` is evidence that the hook chain and its gates behave
+# correctly. It is NOT evidence about any kernel, it is not a real review
+# verdict, and no GPU measurement occurs anywhere in this workflow.

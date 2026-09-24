@@ -1,0 +1,30 @@
+{
+  "status": "RESOLVED",
+  "resolution_scope": "checkpoint metadata plus supplied deployment; runtime backend/traffic unverified",
+  "checkpoint_sha256": "9710e121a58d03ac92c8d6da287a19541994319afbbe6d6202af001ffd379213",
+  "config_scope": "text_config",
+  "num_heads": 96,
+  "local_num_heads": 12,
+  "head_k_dim": 128,
+  "head_v_dim": 128,
+  "attention_tp_size": 8,
+  "activation_dtype": "bfloat16",
+  "activation_dtype_basis": "checkpoint_metadata",
+  "state_dtype": "bfloat16",
+  "gate_lower_bound": -5.0,
+  "gate_lower_bound_basis": "checkpoint",
+  "use_full_rank_gate": true,
+  "short_conv_kernel_size": 4,
+  "a_log_dtype": "float32",
+  "dt_bias_dtype": "float32",
+  "beta_dtype": "float32",
+  "beta_is_raw": false,
+  "use_qk_l2norm_in_kernel": true,
+  "state_axis_order": [
+    "slot",
+    "head",
+    "value",
+    "key"
+  ],
+  "kernel_chunk_size": 64
+}

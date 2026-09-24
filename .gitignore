@@ -1,0 +1,69 @@
+# Python and build output
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+.codex-test/
+.config-test/
+dist/
+build/
+*.egg-info/
+
+# Local configuration and secrets
+config/*.local.json
+config/local/
+.env
+.env.*
+*.secret
+*.token
+
+# Machine-specific evidence. Keep manifests and reports in Git; store raw data
+# in an external artifact store or a local archive.
+evidence/runs/
+evidence/profiles/
+evidence/orchestration/
+evidence/snapshots/
+*.log
+*.ncu-rep
+*.nsys-rep
+*.sqlite
+*.tar.gz
+*.bundle
+
+# Task-local generated data
+tasks/*/.baseline/
+tasks/*/.humanize/
+tasks/*/runs/
+tasks/*/profile/
+tasks/*/runtime/
+tasks/*/local-evidence/
+tasks/*/cache/
+
+# Project-owned compatibility overlay built from the pinned Humanize release.
+# Runtime output: content-addressed build directories, never tracked.
+external/.overlay/
+
+# Export bundles. They contain local absolute paths and are never published
+# as-is; only curated manifests under evidence/manifests/ are tracked.
+evidence/exports/
+
+# OS/editor files
+.DS_Store
+.idea/
+.vscode/
+
+# Infra Loop runtime state (logs, runs, sessions, caches and transcripts)
+.infra/
+# Project task runtime can be nested below model/stage/task. The recursive
+# patterns keep copied upstream trees, agent sessions and raw evidence out of
+# the public repository at every depth.
+projects/**/.baseline/
+projects/**/.humanize/
+projects/**/runs/
+projects/**/profile/
+projects/**/runtime/
+projects/**/local-evidence/
+projects/**/cache/

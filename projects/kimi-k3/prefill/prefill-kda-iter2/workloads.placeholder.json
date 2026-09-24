@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "task_id": "prefill-kda-iter2",
+  "status": "placeholder",
+  "note": "Replace with a resolved workload definition, then set workload_status to 'resolved' in task.json.",
+  "cases": []
+}

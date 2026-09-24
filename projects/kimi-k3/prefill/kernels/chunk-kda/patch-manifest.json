@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "task_id": "prefill-kda",
+  "base_commit": "8eea3c25a3eaa3c850dbdb0ede2bba7de8f03e93",
+  "candidate_head": "41f2d3b1a6a99a7a547b5e5e96967ef2b9f8f135",
+  "files": {
+    "python/sglang/kernels/ops/attention/fla/kda.py": "1f528238700d280e951654026179bf4762fe51ab9139066f4ac9b7b718852c80",
+    "python/sglang/kernels/ops/attention/fla/l2norm.py": "9beeaea0fc686228336baff9776e78b5267b827504f00641841932a909a618b3"
+  },
+  "patch_sha256": "eda8c23b63a08d651c321315d2579b396993aece88714758b83170797f1d81cb",
+  "integration_status": "not_applied",
+  "serving_validation": "not_performed",
+  "source_availability": "The task base is retained from local campaign history and must be published or reconstructed before external application."
+}

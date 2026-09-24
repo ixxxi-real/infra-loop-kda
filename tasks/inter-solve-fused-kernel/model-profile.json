@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "task_id": "inter-solve-fused-kernel",
+  "model": "kimi-k3",
+  "status": "RESOLVED",
+  "resolution_scope": "checkpoint metadata plus deployment; runtime backend/traffic requires GB300 confirmation",
+  "checkpoint_sha256": "9710e121a58d03ac92c8d6da287a19541994319afbbe6d6202af001ffd379213",
+  "fields": {
+    "num_heads": 96,
+    "local_num_heads": 12,
+    "head_k_dim": 128,
+    "head_v_dim": 128,
+    "attention_tp_size": 8,
+    "activation_dtype": "bfloat16",
+    "state_dtype": "bfloat16",
+    "kernel_chunk_size": 64,
+    "sub_chunk_size": 16,
+    "use_full_rank_gate": true,
+    "gate_lower_bound": -5.0,
+    "safe_gate": true,
+    "target_kernel": "chunk_kda_fwd_kernel_inter_solve_fused",
+    "target_source_file": "python/sglang/kernels/ops/attention/fla/chunk_intra.py"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "candidate_id": "state-kmajor",
+  "patch_file": "deliverables/state-kmajor.patch",
+  "patch_sha256": "1e88c71f94a0cf948fab6f7b1b0711bbcc577477c6dcb6449a0963f0d5d0d917",
+  "base_commit": "9ac2710bd37622f38edb078cc753244a3c38c334",
+  "allowed_source_files": [
+    "python/sglang/kernels/ops/attention/fla/chunk_delta_h.py"
+  ],
+  "candidate_source_sha256": "d547cce88636ea9276f25caea64f571239d09107d951151744327c414af74849",
+  "parent_source_sha256": "c78a670b0240dac410e9f045ccc39cd8a2791f9fb2d98936ac1deb478b7dfebd",
+  "description": "K-major recurrence state layout; removes the two loop tl.trans operations while preserving external V,K memory layout and ABI.",
+  "validation": {
+    "correctness": "passed: 11 oracle + 51 baseline grid",
+    "precision": "passed: 3 trial seeds",
+    "isolated_ncu_speedup": 1.3851,
+    "full_workload_geomean_runs": [
+      1.02759,
+      1.00042
+    ],
+    "decision": "reject_below_threshold",
+    "evidence_dir": ".infra/evidence/chunk-gated-delta-h/kmajor-gpu0"
+  },
+  "integration_status": "not_applied"
+}

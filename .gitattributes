@@ -1,0 +1,3 @@
+# Patch artifacts preserve their original bytes; blank added lines may contain
+# trailing spaces required by the diff format.
+*.patch -whitespace

@@ -1,0 +1,244 @@
+diff --git a/python/sglang/kernels/ops/attention/fla/kda.py b/python/sglang/kernels/ops/attention/fla/kda.py
+index 9b91feb23..f793e1800 100644
+--- a/python/sglang/kernels/ops/attention/fla/kda.py
++++ b/python/sglang/kernels/ops/attention/fla/kda.py
+@@ -22,7 +22,7 @@ from sglang.kernels.ops.attention.fla.fused_recurrent import (
+ from sglang.kernels.ops.attention.fla.index import (
+     prepare_chunk_indices,
+ )
+-from sglang.kernels.ops.attention.fla.l2norm import l2norm_fwd
++from sglang.kernels.ops.attention.fla.l2norm import kda_prepare_qkv_fwd
+ from sglang.kernels.ops.attention.fla.op import exp, exp2, log
+ from sglang.kernels.ops.attention.fla.utils import (
+     autotune_cache_kwargs,
+@@ -1223,8 +1223,12 @@ def chunk_kda(
+         scale = k.shape[-1] ** -0.5
+ 
+     if use_qk_l2norm_in_kernel:
+-        q = l2norm_fwd(q.contiguous())
+-        k = l2norm_fwd(k.contiguous())
++        # Callers pass strided views of one packed post-convolution QKV tensor, so
++        # preparing q/k/v separately costs five launches: three full-tensor copies
++        # plus two normalizations. This fuses them into one, four fewer launches.
++        q, k, v = kda_prepare_qkv_fwd(q, k, v)
++    else:
++        v = v.contiguous()
+ 
+     if beta_is_raw:
+         beta = beta.float().sigmoid()
+@@ -1233,7 +1237,7 @@ def chunk_kda(
+     return chunk_kda_fwd(
+         q=q,
+         k=k,
+-        v=v.contiguous(),
++        v=v,
+         g=g.contiguous(),
+         beta=beta.contiguous(),
+         scale=scale,
+diff --git a/python/sglang/kernels/ops/attention/fla/l2norm.py b/python/sglang/kernels/ops/attention/fla/l2norm.py
+index 30b445d3c..2386d1c6c 100644
+--- a/python/sglang/kernels/ops/attention/fla/l2norm.py
++++ b/python/sglang/kernels/ops/attention/fla/l2norm.py
+@@ -119,6 +119,202 @@ def l2norm_fwd(
+     return y.view(x_shape_og)
+ 
+ 
++@triton.jit
++def _kda_prepare_tile(
++    x,
++    y,
++    stride_x_t,
++    stride_y_t,
++    eps,
++    i_t,
++    T,
++    D: tl.constexpr,
++    BT: tl.constexpr,
++    BD: tl.constexpr,
++    NORMALIZE: tl.constexpr,
++):
++    """One (BT, BD) tile of one head: optional L2 normalization, then store.
++
++    Block shape, reduction axis, FP32 accumulation and the divide-by-sqrt form
++    match l2norm_fwd_kernel, and each row is normalized independently, so the
++    per-head tiling here is mathematically equivalent to that kernel's flattened
++    (T*H, D) tiling. Only the input pointer arithmetic differs (explicit token
++    stride instead of a contiguous flattened view).
++
++    Matching block dimensions do not by themselves guarantee an identical compiler
++    reduction for every accepted specialization, so this is an equivalence claim
++    checked against the frozen tolerance, not a bitwise guarantee.
++    """
++    # int64 strides: the token offset reaches i_t * BT * stride_t, which overflows
++    # int32 for large token strides even at modest T. tl.cast, not .to(): the
++    # output stride arrives as a constexpr expression (H * DK), and constexpr has
++    # no .to method, while tl.cast accepts constexpr and runtime scalars alike.
++    p_x = tl.make_block_ptr(
++        x, (T, D), (tl.cast(stride_x_t, tl.int64), 1), (i_t * BT, 0), (BT, BD), (1, 0)
++    )
++    p_y = tl.make_block_ptr(
++        y, (T, D), (tl.cast(stride_y_t, tl.int64), 1), (i_t * BT, 0), (BT, BD), (1, 0)
++    )
++    b_x = tl.load(p_x, boundary_check=(0, 1))
++    if NORMALIZE:
++        b_f = b_x.to(tl.float32)
++        b_var = tl.sum(b_f * b_f, axis=1)
++        b_y = b_f / tl.sqrt(b_var + eps)[:, None]
++        tl.store(p_y, b_y.to(p_y.dtype.element_ty), boundary_check=(0, 1))
++    else:
++        tl.store(p_y, b_x, boundary_check=(0, 1))
++
++
++@triton.jit(do_not_specialize=["T"])
++def kda_prepare_qkv_fwd_kernel(
++    q,
++    k,
++    v,
++    q_out,
++    k_out,
++    v_out,
++    eps,
++    T,
++    stride_q_b,
++    stride_q_t,
++    stride_q_h,
++    stride_k_b,
++    stride_k_t,
++    stride_k_h,
++    stride_v_b,
++    stride_v_t,
++    stride_v_h,
++    H: tl.constexpr,
++    DK: tl.constexpr,
++    DV: tl.constexpr,
++    BT: tl.constexpr,
++    BDK: tl.constexpr,
++    BDV: tl.constexpr,
++):
++    """Materialize strided packed Q/K/V and L2-normalize Q/K in one launch.
++
++    Grid is (token blocks, B*H, 3); the third axis picks Q, K or V so all three
++    tensors share one launch instead of one copy plus one normalization each.
++    """
++    i_t, i_bh, i_tensor = tl.program_id(0), tl.program_id(1), tl.program_id(2)
++    i_b, i_h = i_bh // H, i_bh % H
++    # Widen the indices BEFORE multiplying. Casting only the batch index leaves
++    # i_h * stride_h as an int32 product, which wraps for large head strides
++    # (envelope-strided or page-major views) and reads outside the allocation.
++    i_b64, i_h64 = i_b.to(tl.int64), i_h.to(tl.int64)
++    head_rows = (i_b64 * T) * H + i_h64
++    if i_tensor == 0:
++        _kda_prepare_tile(
++            q + i_b64 * stride_q_b + i_h64 * stride_q_h,
++            q_out + head_rows * DK,
++            stride_q_t,
++            H * DK,
++            eps,
++            i_t,
++            T,
++            DK,
++            BT,
++            BDK,
++            True,
++        )
++    elif i_tensor == 1:
++        _kda_prepare_tile(
++            k + i_b64 * stride_k_b + i_h64 * stride_k_h,
++            k_out + head_rows * DK,
++            stride_k_t,
++            H * DK,
++            eps,
++            i_t,
++            T,
++            DK,
++            BT,
++            BDK,
++            True,
++        )
++    else:
++        _kda_prepare_tile(
++            v + i_b64 * stride_v_b + i_h64 * stride_v_h,
++            v_out + head_rows * DV,
++            stride_v_t,
++            H * DV,
++            eps,
++            i_t,
++            T,
++            DV,
++            BT,
++            BDV,
++            False,
++        )
++
++
++def kda_prepare_qkv_fwd(
++    q: torch.Tensor, k: torch.Tensor, v: torch.Tensor, eps: float = 1e-6
++):
++    """L2-normalize Q/K and materialize a contiguous V in one launch.
++
++    Replaces `l2norm_fwd(q.contiguous())`, `l2norm_fwd(k.contiguous())` and
++    `v.contiguous()`. `l2norm_fwd` allocates its own output, so the Q/K copies
++    only existed to satisfy its flattened view.
++
++    An already-contiguous `v` is returned unchanged, never copied:
++    `chunk_gla_fwd_o_gk(o=v)` writes the operator result through this buffer, so
++    copying would stop the caller's tensor from receiving the output and would
++    break the returned-output aliasing that `v.contiguous()` gave for free.
++    """
++    supported = (
++        q.ndim == 4
++        and k.shape == q.shape
++        and v.ndim == 4
++        and v.shape[:3] == q.shape[:3]
++        and q.dtype == k.dtype == v.dtype
++        and q.device == k.device == v.device
++        and q.stride(-1) == k.stride(-1) == v.stride(-1) == 1
++        # l2norm_fwd dispatches to l2norm_fwd_kernel only below 512; stay inside
++        # that range so the normalization math matches the old path.
++        and q.shape[-1] <= 512
++        and v.shape[-1] <= 512
++    )
++    if not supported:
++        return l2norm_fwd(q.contiguous(), eps), l2norm_fwd(k.contiguous(), eps), v.contiguous()
++
++    B, T, H, DK = q.shape
++    DV = v.shape[-1]
++    q_out = torch.empty(q.shape, dtype=q.dtype, device=q.device)
++    k_out = torch.empty(k.shape, dtype=k.dtype, device=k.device)
++    materialize_v = not v.is_contiguous()
++    v_out = torch.empty(v.shape, dtype=v.dtype, device=v.device) if materialize_v else v
++    BT = 16
++    # Grid z selects Q, K or V; it drops to 2 when V needs no materialization.
++    kda_prepare_qkv_fwd_kernel[(triton.cdiv(T, BT), B * H, 3 if materialize_v else 2)](
++        q,
++        k,
++        v,
++        q_out,
++        k_out,
++        v_out,
++        eps,
++        T=T,
++        stride_q_b=q.stride(0),
++        stride_q_t=q.stride(1),
++        stride_q_h=q.stride(2),
++        stride_k_b=k.stride(0),
++        stride_k_t=k.stride(1),
++        stride_k_h=k.stride(2),
++        stride_v_b=v.stride(0),
++        stride_v_t=v.stride(1),
++        stride_v_h=v.stride(2),
++        H=H,
++        DK=DK,
++        DV=DV,
++        BT=BT,
++        BDK=triton.next_power_of_2(DK),
++        BDV=triton.next_power_of_2(DV),
++        num_warps=8,
++        num_stages=3,
++    )
++    return q_out, k_out, v_out
++
++
+ @triton.jit(do_not_specialize=["T"])
+ def gdn_prefill_qkv_prepare_kernel(
+     q,

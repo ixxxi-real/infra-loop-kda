@@ -1,0 +1,21 @@
+[build-system]
+# setuptools>=64 provides the PEP 660 `build_editable` hook. `make install`
+# performs an editable install, so a lower version fails outright with
+# "missing the 'build_editable' hook" rather than degrading quietly.
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "infra-loop-kda"
+version = "0.1.0"
+description = "Reproducible control plane for automated GPU kernel optimization"
+requires-python = ">=3.9"
+dependencies = []
+
+[project.scripts]
+k3ctl = "tools.k3ctl:main"
+
+[tool.setuptools]
+# tools.k3 holds every command implementation; without it the installed
+# k3ctl console script cannot import its own modules.
+packages = ["tools", "tools.k3"]

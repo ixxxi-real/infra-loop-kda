@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "task_id": "prefill-kda",
+  "status": "accepted",
+  "source_commit": "8eea3c25a3eaa3c850dbdb0ede2bba7de8f03e93",
+  "patch_sha256": "eda8c23b63a08d651c321315d2579b396993aece88714758b83170797f1d81cb",
+  "workloads_sha256": "2a8768fe725493776becd50f4a4c8df58775d70e21d77b3fe529d9066396e356",
+  "correctness": {
+    "oracle_cases": "11/11",
+    "deployment_grid_cases": "51/51",
+    "candidate_vs_baseline_violations": 0
+  },
+  "precision": {
+    "seeds": [
+      17092026,
+      18092029,
+      19092032
+    ],
+    "cases": 62,
+    "candidate_vs_baseline_bitwise_fields": "378/378",
+    "baseline_aa_bitwise_fields": "378/378",
+    "gating": "advisory"
+  },
+  "timing": {
+    "paired_measurements": 2,
+    "trials_per_measurement": 5,
+    "geometric_mean_speed_ratios": [
+      1.1615484367,
+      1.1750340327
+    ],
+    "pooled_row_regressions": 0
+  },
+  "integration_status": "not_applied",
+  "serving_validation": "not_performed",
+  "raw_artifacts": "external; run IDs and machine-specific locations intentionally omitted from the public manifest",
+  "project_id": "infra-loop-kda",
+  "task_path": "projects/kimi-k3/prefill",
+  "patch_path": "kernels/chunk-kda/accepted-kernel.patch"
+}

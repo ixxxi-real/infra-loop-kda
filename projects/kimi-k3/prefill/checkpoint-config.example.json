@@ -1,0 +1,13 @@
+{
+  "text_config": {
+    "dtype": "bfloat16",
+    "v_head_dim": 128,
+    "linear_attn_config": {
+      "num_heads": 96,
+      "head_dim": 128,
+      "short_conv_kernel_size": 4,
+      "gate_lower_bound": -5.0,
+      "use_full_rank_gate": true
+    }
+  }
+}

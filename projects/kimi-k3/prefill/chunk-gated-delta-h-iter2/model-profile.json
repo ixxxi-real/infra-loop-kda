@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "task_id": "chunk-gated-delta-h-iter2",
+  "model": "kimi-k3",
+  "note": "Facts copied from the resolved Kimi K3 prefill profile; runtime backend and traffic distribution still require confirmation.",
+  "fields": {
+    "num_heads": 96,
+    "local_num_heads": 12,
+    "head_k_dim": 128,
+    "head_v_dim": 128,
+    "attention_tp_size": 8,
+    "activation_dtype": "bfloat16",
+    "state_dtype": "bfloat16",
+    "kernel_chunk_size": 64,
+    "use_full_rank_gate": true,
+    "gate_lower_bound": -5.0
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "status": "UNRESOLVED",
+  "model_profile": "Kimi K3 exact checkpoint: fill in",
+  "dtype": "fill in",
+  "cases": [],
+  "measurement": {
+    "warmup": "fill in",
+    "iterations": "fill in",
+    "synchronize": "fill in",
+    "baseline": "fill in"
+  }
+}

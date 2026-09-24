@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "source_commit": "8eea3c25a3eaa3c850dbdb0ede2bba7de8f03e93",
+  "prefill": {
+    "tp_size": 8,
+    "attention_tp_size": 8,
+    "pp_size": 1,
+    "nnodes": 2,
+    "gpu_per_node": 4,
+    "chunked_prefill_size": 16384,
+    "max_prefill_tokens": 16384,
+    "max_running_requests": 128,
+    "context_length": 1048576,
+    "page_size": 64,
+    "state_dtype": "bfloat16",
+    "activation_dtype": null,
+    "attention_backend": "trtllm_mla",
+    "linear_attn_backend": null,
+    "linear_attn_prefill_backend": null,
+    "cuda_graph_backend_prefill": "breakable",
+    "enable_hierarchical_cache": true
+  },
+  "backend_resolution": {
+    "required_runtime_evidence": [
+      "effective server arguments",
+      "linear attention kernel backend log",
+      "effective extend-kernel class",
+      "loaded module paths and source commit"
+    ]
+  }
+}

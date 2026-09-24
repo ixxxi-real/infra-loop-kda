@@ -1,0 +1,90 @@
+{
+  "schema_version": 1,
+  "project_id": "infra-loop-kda",
+  "model": {
+    "id": "kimi-k3",
+    "display_name": "Kimi K3",
+    "checkpoint": {
+      "config_path": "<local checkpoint config>",
+      "sha256": "<sha256>"
+    }
+  },
+  "source": {
+    "submodule": "external/sglang",
+    "repository": "https://github.com/Infrawaves/sglang.git",
+    "branch": "feat/kimi_k3_support_sp",
+    "commit": "9ac2710bd37622f38edb078cc753244a3c38c334"
+  },
+  "dependencies": {
+    "kda": {
+      "path": "external/kda",
+      "repository": "https://github.com/NVlabs/kda.git",
+      "commit": "ef6ce617693ef0782b3ecb9f37e39bbf10226a90"
+    },
+    "humanize": {
+      "path": "external/humanize",
+      "repository": "https://github.com/PolyArch/humanize.git",
+      "commit": "4eeb392cd2450c3df99cb898bd6b24839967bbc3"
+    }
+  },
+  "skills": {
+    "project": "skills/kernel-optimization/SKILL.md",
+    "kernelwiki": "external/kda/skills/KernelWiki/SKILL.md",
+    "ncu_report": "external/kda/skills/ncu-report-skill/SKILL.md",
+    "humanize": "external/humanize/skills/humanize/SKILL.md"
+  },
+  "workflow": {
+    "writer": {
+      "command": "claude",
+      "model": "opus",
+      "effort": "max",
+      "permission_mode": "acceptEdits"
+    },
+    "reviewer": {
+      "command": "codex",
+      "model": "gpt-6-astra",
+      "effort": "ultra",
+      "codex_home": "~/.codex-bak",
+      "bypass_sandbox": true,
+      "disable_apps": true
+    },
+    "humanize": {
+      "plugin_dir": "external/humanize",
+      "start_command": "/humanize:start-rlcr-loop",
+      "cancel_command": "/humanize:cancel-rlcr-loop"
+    },
+    "kda": {
+      "prompt": "external/kda/prompts/basic-flow.md",
+      "agent_flow": "external/kda/docs/agent-flow.md"
+    }
+  },
+  "runner": {
+    "adapter": "local-command",
+    "environment": {},
+    "commands": {}
+  },
+  "no_commit_overlay": {
+    "enabled": true,
+    "workspace": "external/.overlay/humanize-no-commit"
+  },
+  "runtime": {
+    "gateway": "<gateway>",
+    "target": "<gpu node>",
+    "gpu_uuid": "<GPU UUID>",
+    "timing_container": "<timing container>",
+    "profiler_container": "<profiler container>",
+    "image_digest": "<image digest>"
+  },
+  "active_task": "prefill-kda",
+  "tasks": [
+    {
+      "id": "prefill-kda",
+      "kind": "prefill",
+      "path": "projects/kimi-k3/prefill"
+    }
+  ],
+  "artifact_policy": {
+    "raw_evidence": "external",
+    "tracked_manifests": true
+  }
+}

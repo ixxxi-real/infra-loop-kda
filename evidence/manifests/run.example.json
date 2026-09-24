@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "run_id": "2026-09-20-prefill-kda-r001",
+  "task_id": "prefill-kda",
+  "source_commit": "<40-character sha>",
+  "patch_sha256": "<sha256 or null>",
+  "command": "<redacted reproducible command>",
+  "environment": {
+    "image_digest": "<image digest>",
+    "hardware_class": "<hardware class>",
+    "driver": "<driver version>"
+  },
+  "artifacts": [
+    {
+      "uri": "<external artifact URI>",
+      "sha256": "<sha256>",
+      "bytes": 0
+    }
+  ],
+  "collected_at": "<ISO-8601 UTC timestamp>",
+  "retention_owner": "<team or owner>"
+}

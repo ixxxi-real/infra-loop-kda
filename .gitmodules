@@ -1,0 +1,13 @@
+[submodule "external/sglang"]
+	path = external/sglang
+	url = https://github.com/Infrawaves/sglang.git
+
+[submodule "external/kda"]
+	path = external/kda
+	url = https://github.com/NVlabs/kda.git
+	shallow = true
+
+[submodule "external/humanize"]
+	path = external/humanize
+	url = https://github.com/PolyArch/humanize.git
+	shallow = true

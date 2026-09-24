@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "task_id": "chunk-gated-delta-h-iter2",
+  "project_id": "infra-loop-kda",
+  "kind": "prefill",
+  "status": "prepared",
+  "created_at": "2026-09-24T03:46:27Z",
+  "objective": "Continue optimizing Kimi K3 prefill chunk_gated_delta_rule_fwd_kernel_h_blockdim64 using register/dataflow evidence to reduce state-kernel cost while preserving recurrence, state write-back, slot/index, gate, and ABI semantics.",
+  "source": {
+    "repository": "https://github.com/Infrawaves/sglang.git",
+    "branch": "main",
+    "commit": "9ac2710bd37622f38edb078cc753244a3c38c334",
+    "availability": "verified locally by workspace prepare; keep this exact ref"
+  },
+  "base_commit": "9ac2710bd37622f38edb078cc753244a3c38c334",
+  "allowed_source_files": [
+    "python/sglang/kernels/ops/attention/fla/chunk_delta_h.py"
+  ],
+  "workload_file": "workloads.resolved.json",
+  "model_profile_file": "model-profile.json",
+  "workload_status": "resolved",
+  "optimization_status": "unresolved",
+  "integration_status": "not_applied",
+  "serving_validation": "not_performed",
+  "contract_file": "contract.md",
+  "source_trace_file": "source-trace.md",
+  "plan_input_file": "plan-input.md",
+  "prompt_file": "prompt.md",
+  "commands": {
+    "validation": "python3 bench/correctness.py --source-root <root> --workloads <workloads> --report <report>",
+    "performance": "python3 bench/benchmark.py --baseline-root <baseline> --candidate-root <candidate> --workloads <workloads> --out <out>"
+  },
+  "promotion": {
+    "rules": [
+      "Validation command passes with zero failures and a non-zero case count.",
+      "Performance evidence is recorded with the exact source commit and workload definition.",
+      "A rejected candidate records the reason instead of being silently discarded."
+    ],
+    "requires_human_review": true
+  },
+  "lineage": {
+    "parent_task": "chunk-gated-delta-h",
+    "parent_workload": "../chunk-gated-delta-h/workloads.resolved.json",
+    "candidates_file": "candidates.jsonl",
+    "benchmark_log": "benchmark.csv",
+    "draft": "docs/draft.md",
+    "plan": "docs/plan.md",
+    "evidence_dir": "local-evidence"
+  },
+  "workflow": {
+    "source": "kda-basic-flow",
+    "kda_prompt": "external/kda/prompts/basic-flow.md",
+    "kda_prompt_sha256": "0ccd7f7c2a8a09bc1eaca287eb3c0026a99db7033a1a032d50c17f8cff96d038",
+    "kda_commit": "ef6ce617693ef0782b3ecb9f37e39bbf10226a90",
+    "attribution": "NVlabs Kernel Design Agents (Kernel Design Agents workflow, not an SDK). See THIRD_PARTY_NOTICES.md and external/kda/LICENSE."
+  },
+  "next_actions": [
+    "Review the frozen full and diagnostic workload manifests.",
+    "Run k3ctl workspace status and verify the existing workspace is clean at the pinned base; do not re-run prepare on this path.",
+    "Run baseline correctness, precision, paired benchmark and targeted NCU/NSYS before editing code.",
+    "Start Humanize only after the clean baseline evidence is recorded."
+  ],
+  "diagnostic_workload_file": "workloads.state-dataflow-focused-v1.json",
+  "workload_role": "full workload is the only promotion denominator; diagnostic workload is for profiling and hypothesis checks",
+  "iteration_policy": {
+    "full_acceptance_workload": "workloads.resolved.json",
+    "diagnostic_workload": "workloads.state-dataflow-focused-v1.json",
+    "freeze_full_workload_during_search": true,
+    "diagnostic_cannot_change_promotion_denominator": true,
+    "one_structural_candidate_at_a_time": true,
+    "reset_to_base_before_next_candidate": true,
+    "on_performance_rejection": "record candidate and continue",
+    "stop_conditions": [
+      "candidate_meets_all_promotion_gates",
+      "round budget exhausted",
+      "external blocker",
+      "explicit human decision"
+    ]
+  }
+}
