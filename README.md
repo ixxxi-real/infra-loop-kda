@@ -35,7 +35,7 @@ reports are intentionally under
 ## Quick start
 
 ```bash
-git clone --recurse-submodules https://github.com/<OWNER>/infra-loop-kda.git
+git clone --recurse-submodules https://github.com/ixxxi-real/infra-loop-kda.git
 cd infra-loop-kda
 
 make doctor
@@ -58,7 +58,7 @@ make task-test
 submodules, creates a virtual environment and runs the dependency-free checks.
 It does not install CUDA, PyTorch, SGLang or a checkpoint.
 
-The URL contains `<OWNER>` because this checkout has not been assigned a
+The URL contains `ixxxi-real` because this checkout has not been assigned a
 GitHub owner yet. When publishing, replace it once with the organization or
 user that owns the repository. After a normal clone, the equivalent submodule
 step is:

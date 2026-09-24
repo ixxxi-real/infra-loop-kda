@@ -20,10 +20,10 @@ plane bootstrap.
 
 ## 2. Clone the complete repository
 
-After this project is published, replace `<OWNER>` with the GitHub owner:
+After this project is published, replace `ixxxi-real` with the GitHub owner:
 
 ```bash
-git clone --recurse-submodules https://github.com/<OWNER>/infra-loop-kda.git
+git clone --recurse-submodules https://github.com/ixxxi-real/infra-loop-kda.git
 cd infra-loop-kda
 ```
 
@@ -126,7 +126,7 @@ Create an empty GitHub repository named `infra-loop-kda`, set its default branch
 to `main`, and add the remote locally:
 
 ```bash
-git remote add origin https://github.com/<OWNER>/infra-loop-kda.git
+git remote add origin https://github.com/ixxxi-real/infra-loop-kda.git
 git add -A
 git diff --cached --check
 git commit -m "Initial engineering baseline"
