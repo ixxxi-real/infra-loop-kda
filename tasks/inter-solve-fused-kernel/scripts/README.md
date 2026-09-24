@@ -6,7 +6,7 @@
 The resolver can be rehearsed without a model or GPU:
 
 ```bash
-python3 projects/kimi-k3/prefill/scripts/configure_workloads.py \
+python3 tasks/inter-solve-fused-kernel/scripts/configure_workloads.py \
   --checkpoint-config projects/kimi-k3/prefill/checkpoint-config.example.json \
   --deployment projects/kimi-k3/prefill/deployment.example.json \
   --output /tmp/kimi-k3-workloads.json

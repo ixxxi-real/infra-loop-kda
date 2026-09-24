@@ -3,7 +3,7 @@
   "workload_version": "inter-solve-fused-v1",
   "source_commit": "9ac2710bd37622f38edb078cc753244a3c38c334",
   "provenance": "New workload for chunk_kda_fwd_kernel_inter_solve_fused, derived from the frozen Kimi K3 full manifest; cases are selected to cover FUSE_RECOMPUTE/FUSE_DIAGONAL regimes and are not reused as H-state evidence.",
-  "parent_workload": "../chunk-gated-delta-h/workloads.resolved.json",
+  "parent_workload": "../../projects/kimi-k3/prefill/experiments/chunk-gated-delta-h/workloads.resolved.json",
   "parent_workload_sha256": "4ae576f6b2a21ce6b0f7f0b7f0681077785759af6d4e0803434f5a930faec4ed",
   "deployment_sha256": "d0d19997899f565a5425b23fa1d44d875725cda8353e0ef9858d23c450580473",
   "model_profile": {

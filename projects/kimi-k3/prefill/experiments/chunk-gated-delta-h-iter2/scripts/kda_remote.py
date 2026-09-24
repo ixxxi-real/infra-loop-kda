@@ -22,7 +22,7 @@ import sys
 import tempfile
 import time
 
-DEFAULT_TASK = "projects/kimi-k3/prefill/prefill-kda-iter2"
+DEFAULT_TASK = "projects/kimi-k3/prefill/experiments/chunk-gated-delta-h-iter2"
 BASE_COMMIT = "9ac2710bd37622f38edb078cc753244a3c38c334"
 DEFAULT_GPU = "<redacted-gpu-uuid>"
 EXCLUDED = {".git", ".humanize", "__pycache__", ".build", ".venv", "artifacts", "runs", ".cache", "build", ".baseline"}

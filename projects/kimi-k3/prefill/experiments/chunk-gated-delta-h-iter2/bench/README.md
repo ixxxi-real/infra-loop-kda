@@ -5,10 +5,10 @@ The files in this directory are the reusable correctness and timing harness migr
 CPU-only checks:
 
 ```bash
-python3 -B -m unittest discover -s projects/kimi-k3/prefill/chunk-gated-delta-h-iter2/bench -p 'test_*.py' -v
-python3 -B projects/kimi-k3/prefill/chunk-gated-delta-h-iter2/bench/preflight.py \
+python3 -B -m unittest discover -s projects/kimi-k3/prefill/experiments/chunk-gated-delta-h-iter2/bench -p 'test_*.py' -v
+python3 -B projects/kimi-k3/prefill/experiments/chunk-gated-delta-h-iter2/bench/preflight.py \
   --source-root external/sglang \
-  --workloads projects/kimi-k3/prefill/chunk-gated-delta-h-iter2/workloads.resolved.json \
+  --workloads projects/kimi-k3/prefill/experiments/chunk-gated-delta-h-iter2/workloads.resolved.json \
   --static-check
 ```
 

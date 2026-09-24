@@ -5,10 +5,10 @@ The files in this directory are the reusable correctness and timing harness migr
 CPU-only checks:
 
 ```bash
-python3 -B -m unittest discover -s projects/kimi-k3/prefill/bench -p 'test_*.py' -v
-python3 -B projects/kimi-k3/prefill/bench/preflight.py \
+python3 -B -m unittest discover -s tasks/inter-solve-fused-kernel/bench -p 'test_*.py' -v
+python3 -B tasks/inter-solve-fused-kernel/bench/preflight.py \
   --source-root external/sglang \
-  --workloads projects/kimi-k3/prefill/workloads.resolved.json \
+  --workloads tasks/inter-solve-fused-kernel/workloads.resolved.json \
   --static-check
 ```
 

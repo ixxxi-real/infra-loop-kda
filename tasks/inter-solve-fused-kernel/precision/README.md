@@ -5,5 +5,5 @@ This directory contains the advisory A/A and A/B precision diagnostic. It reuses
 The diagnostic's cache is deliberately identity-bound to source, workload, device, driver and numerical environment. Keep its cache outside Git.
 
 ```bash
-python3 -B -m unittest discover -s projects/kimi-k3/prefill/precision -p 'test_*.py' -v
+python3 -B -m unittest discover -s tasks/inter-solve-fused-kernel/precision -p 'test_*.py' -v
 ```
