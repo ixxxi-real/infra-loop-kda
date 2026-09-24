@@ -96,7 +96,15 @@ inspect the task before launching an agent:
 make doctor-agent CONFIG=config/project.local.json TASK=prefill-kda
 make workspace-prepare CONFIG=config/project.local.json TASK=prefill-kda
 make workspace-status CONFIG=config/project.local.json TASK=prefill-kda
-make agent-plan CONFIG=config/project.local.json TASK=prefill-kda
+```
+
+The accepted `prefill-kda` task is immutable, so `agent-plan` intentionally
+refuses it. Use it only to inspect or reproduce the accepted result. For new
+optimization work, create or register a prepared unresolved task in the local
+configuration, then run:
+
+```bash
+make agent-plan CONFIG=config/project.local.json TASK=<unresolved-task-id>
 ```
 
 The plan command is dry-run only. When the source, workload and runtime are
