@@ -164,3 +164,12 @@ path. The CLI refuses to adopt an unrelated directory as the project root.
 **A GPU task has no CUDA tools.** This is an environment problem, not a control
 plane build failure. Install or select the task's pinned runtime image and
 rerun `make doctor-agent` before preparing a workspace.
+
+**Git reports an HTTP/2 framing error while cloning.** Retry the same clone
+with HTTP/1.1, which avoids a transport issue seen with some local Git/cURL
+combinations:
+
+```bash
+GIT_HTTP_VERSION=HTTP/1.1 git clone --recurse-submodules \
+  https://github.com/ixxxi-real/infra-loop-kda.git
+```
