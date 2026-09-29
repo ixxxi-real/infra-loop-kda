@@ -98,6 +98,24 @@ make workspace-prepare CONFIG=config/project.local.json TASK=prefill-kda
 make workspace-status CONFIG=config/project.local.json TASK=prefill-kda
 ```
 
+The control-plane bootstrap does not install agent CLIs or provider
+credentials. For the default Humanize2 workflow, install and authenticate the
+tools on the machine that will run the loop, then verify them before starting:
+
+```bash
+uv tool install --editable external/humanize2
+hmz --version
+claude --version
+codex --version
+make doctor-agent CONFIG=config/project.local.json TASK=<unresolved-task-id>
+```
+
+The Codex profile is selected through `CODEX_HOME` in the local configuration;
+the repository never stores credentials. CUDA, PyTorch, Triton, Nsight Compute,
+the model checkpoint, serving image and site-specific gateway or scheduler
+wrappers remain deployment prerequisites and must be supplied by the target
+GPU environment.
+
 The accepted `prefill-kda` task is immutable, so `agent-plan` intentionally
 refuses it. Use it only to inspect or reproduce the accepted result. For new
 optimization work, create or register a prepared unresolved task in the local
@@ -156,6 +174,13 @@ then rerun `make install`.
 **The doctor reports missing submodules.** Run the recursive submodule update
 from step 2. The control-plane tests can run without submodules, but agent
 workflow and overlay tests cannot.
+
+**The public example doctor is degraded on the accepted prefill task.** The
+accepted `prefill-kda` record points to an exact historical source commit that
+is not the public SGLang submodule pin. This is intentional: reproduction needs
+the matching private source clone. Configure an unresolved local task whose
+base commit is present in your source clone before starting an optimization
+loop.
 
 **`k3ctl` cannot find the repository from another directory.** Set
 `K3_PROJECT_ROOT=/absolute/path/to/infra-loop-kda` or pass an explicit config

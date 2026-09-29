@@ -68,6 +68,10 @@ make task-test
 submodules, creates a virtual environment and runs the dependency-free checks.
 It does not install CUDA, PyTorch, SGLang or a checkpoint.
 
+It also does not install `hmz`, Claude/Codex CLIs or their credentials. Those
+are prerequisites only for an agent run; the GPU-specific setup is documented
+in [the fresh-clone walkthrough](docs/getting-started.md).
+
 The URL contains `ixxxi-real` because this checkout has not been assigned a
 GitHub owner yet. When publishing, replace it once with the organization or
 user that owns the repository. After a normal clone, the equivalent submodule
