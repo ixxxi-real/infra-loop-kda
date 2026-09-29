@@ -3,7 +3,8 @@
 	all-tests workload-example status task-list doctor doctor-agent verify package \
 	repository-check install-check \
 	overlay-build overlay-verify workspace-prepare workspace-status agent-plan \
-	agent-status run-plan export-bundle skills-check skills-install clean-venv
+	agent-status humanize2-plan humanize2-start humanize2-status humanize2-stop \
+	run-plan export-bundle skills-check skills-install clean-venv
 
 CONFIG ?= config/project.example.json
 PYTHON ?= python3
@@ -29,8 +30,12 @@ help:
 	@echo "Task flow (TASK=<id> selects a task; defaults to active_task)"
 	@echo "  make workspace-prepare  materialise a task's exact base commit"
 	@echo "  make workspace-status   report prepared workspace state"
-	@echo "  make agent-plan         dry-run the Claude+Humanize loop; spawns nothing"
-	@echo "  make agent-status       real loop/process state"
+	@echo "  make agent-plan         dry-run the configured KDA Humanize backend"
+	@echo "  make agent-status       real configured workflow/process state"
+	@echo "  make humanize2-plan     dry-run the independent hmz Humanize2 flow"
+	@echo "  make humanize2-start    launch Humanize2 after the plan gates pass"
+	@echo "  make humanize2-status   report the Humanize2 process record"
+	@echo "  make humanize2-stop     stop the recorded Humanize2 process"
 	@echo "  make run-plan           freeze a runner plan; starts nothing"
 	@echo "  make export-bundle      write a fresh evidence bundle"
 	@echo ""
@@ -120,6 +125,18 @@ agent-plan:
 
 agent-status:
 	$(K3CTL) agent status --config $(CONFIG) $(TASK_ARG)
+
+humanize2-plan:
+	$(K3CTL) humanize2 plan --config $(CONFIG) $(TASK_ARG)
+
+humanize2-start:
+	$(K3CTL) humanize2 start --config $(CONFIG) $(TASK_ARG)
+
+humanize2-status:
+	$(K3CTL) humanize2 status --config $(CONFIG) $(TASK_ARG)
+
+humanize2-stop:
+	$(K3CTL) humanize2 stop --config $(CONFIG) $(TASK_ARG)
 
 run-plan:
 	$(K3CTL) run plan --config $(CONFIG) $(TASK_ARG)

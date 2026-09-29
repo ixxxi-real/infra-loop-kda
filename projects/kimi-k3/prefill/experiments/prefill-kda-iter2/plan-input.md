@@ -37,6 +37,7 @@ synthetic-only measurements do not establish GB300 serving benefit.
 
 - First: profile the current base and map the real prefill call to the kernel.
 - Second: implement one low-risk dataflow or launch candidate supported by the
-  profile, limited to `kda.py`/`l2norm.py`.
+  profile, limited to `kda.py`, `l2norm.py`, or the profiled `chunk_delta_h.py`
+  H-stage helper.
 - Third: consider a larger algorithmic change only if the profile shows the
   first candidate cannot meet the gate; keep it as a separate lineage entry.

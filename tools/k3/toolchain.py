@@ -463,6 +463,118 @@ def humanize_section(root: Path, settings: Dict[str, Any]) -> Dict[str, Any]:
     return section
 
 
+def humanize2_section(root: Path, settings: Dict[str, Any]) -> Dict[str, Any]:
+    """Inspect the independent Humanize2 Python/CLI runtime.
+
+    Humanize1 is a Claude plugin and is intentionally checked by
+    :func:`humanize_section`.  Humanize2 has no ``.claude-plugin`` manifest;
+    its reproducible identity is the git checkout plus ``pyproject.toml`` and
+    the ``src/hmz`` package.  The ``hmz`` executable is reported as a warning
+    because the control plane must remain usable for offline plans on machines
+    where the optional runtime has not been installed yet.
+    """
+    humanize2 = settings.get("humanize2") or {}
+    relative = str(humanize2.get("runtime_dir") or "external/humanize2")
+    section: Dict[str, Any] = {
+        "runtime_dir": relative,
+        "name": "hmz",
+        "version": None,
+        "flow": humanize2.get("flow"),
+        "checks": [],
+    }
+    try:
+        runtime = paths.safe_join(root, relative)
+    except paths.PathError as exc:
+        section["checks"].append(_check("humanize2-runtime", INCOMPATIBLE, str(exc)))
+        return section
+
+    pyproject = runtime / "pyproject.toml"
+    package = runtime / "src" / "hmz"
+    readme = runtime / "README.md"
+    if not pyproject.is_file() or not package.is_dir():
+        section["checks"].append(
+            _check(
+                "humanize2-runtime",
+                MISSING,
+                "%s is not an initialized Humanize2 checkout; run: git submodule "
+                "update --init --recursive" % relative,
+                path=relative,
+            )
+        )
+        return section
+
+    flow = str(humanize2.get("flow") or "").strip()
+    if flow and not flow.startswith("git+"):
+        try:
+            flow_path = paths.safe_join(root, flow)
+        except paths.PathError as exc:
+            section["checks"].append(_check("humanize2-flow", INCOMPATIBLE, str(exc)))
+        else:
+            flow_init = flow_path / "__init__.py"
+            if flow_init.is_file():
+                section["checks"].append(
+                    _check("humanize2-flow", OK, "%s is available" % flow)
+                )
+            else:
+                section["checks"].append(
+                    _check(
+                        "humanize2-flow",
+                        MISSING,
+                        "%s is not an initialized flow directory" % flow,
+                        path=flow,
+                    )
+                )
+    elif flow:
+        section["checks"].append(
+            _check(
+                "humanize2-flow",
+                OK,
+                "remote flow ref will be resolved by hmz: %s" % flow,
+            )
+        )
+
+    text = pyproject.read_text(encoding="utf-8", errors="replace")
+    match = re.search(r"(?m)^version\s*=\s*[\"']([^\"']+)[\"']", text)
+    section["version"] = match.group(1) if match else None
+    head = gitq.head_commit(runtime)
+    section["commit"] = head
+    detail = "%s %s @ %s" % (
+        section["name"],
+        section["version"] or "unknown",
+        (head or "unknown")[:12],
+    )
+    section["checks"].append(
+        _check(
+            "humanize2-runtime",
+            OK,
+            detail,
+            path=relative,
+            version=section["version"],
+            current_head=head,
+            pyproject_sha256=util.sha256_file(pyproject),
+            readme_present=readme.is_file(),
+        )
+    )
+    command = str(humanize2.get("command") or "hmz")
+    located = util.which(command)
+    if located is None:
+        section["checks"].append(
+            _check(
+                "humanize2-command",
+                MISSING,
+                "%s is not on PATH; install the pinned runtime with uv before "
+                "starting Humanize2" % command,
+                severity="warning",
+                command=command,
+            )
+        )
+    else:
+        section["checks"].append(
+            _check("humanize2-command", OK, "%s at %s" % (command, located), path=located)
+        )
+    return section
+
+
 # ------------------------------------------------------------------ assembly
 
 
@@ -595,6 +707,23 @@ def inspect(
         )
     )
     for name in ("kda", "humanize"):
+        if name == "humanize" and name not in dependencies:
+            continue
+        entry = dependencies.get(name) or {}
+        relative = str(entry.get("path") or "external/%s" % name)
+        commit = entry.get("commit")
+        dependency_checks.append(
+            dependency_check(
+                root,
+                "dependency-%s" % name,
+                relative,
+                commit if config_mod.SHA_RE.fullmatch(str(commit or "")) else None,
+                gitlinks,
+            )
+        )
+    for name in ("humanize2", "flowverse"):
+        if name not in dependencies:
+            continue
         entry = dependencies.get(name) or {}
         relative = str(entry.get("path") or "external/%s" % name)
         commit = entry.get("commit")
@@ -622,6 +751,13 @@ def inspect(
 
     kda = kda_section(root, settings)
     humanize = humanize_section(root, settings)
+    # Keep old fixture/local configurations fully backwards compatible.  The
+    # new block is inspected only when the config opts into the new dependency.
+    humanize2 = (
+        humanize2_section(root, settings)
+        if "humanize2" in dependencies or "humanize2" in (config.get("workflow") or {})
+        else {"runtime_dir": None, "name": None, "version": None, "flow": None, "checks": []}
+    )
 
     agent_checks: List[Dict[str, Any]] = []
     if agent_profile:
@@ -645,6 +781,7 @@ def inspect(
         + skill_checks
         + kda["checks"]
         + humanize["checks"]
+        + humanize2["checks"]
         + agent_checks
         + availability["checks"]
     )
@@ -680,6 +817,7 @@ def inspect(
         "skills": skill_checks,
         "kda": kda,
         "humanize": humanize,
+        "humanize2": humanize2,
         "agents": agent_checks,
         "source_availability": availability,
         "missing": [item["name"] for item in all_checks if item["status"] == MISSING],
@@ -687,8 +825,10 @@ def inspect(
             item["name"] for item in all_checks if item["status"] == INCOMPATIBLE
         ],
         "workflow": {
+            "humanize_backend": config_mod.humanize_backend(config),
             "writer": settings.get("writer"),
             "reviewer": settings.get("reviewer"),
+            "humanize2": settings.get("humanize2"),
         },
     }
     return report
@@ -716,10 +856,18 @@ def identity(report: Dict[str, Any]) -> Dict[str, Any]:
             for item in report["skills"]
         },
         "kda_prompt": report["kda"].get("prompt"),
+        "humanize_backend": (report.get("workflow") or {}).get("humanize_backend"),
         "humanize": {
             "name": report["humanize"].get("name"),
             "version": report["humanize"].get("version"),
             "hooks": report["humanize"].get("hooks"),
+        },
+        "humanize2": {
+            "runtime_dir": report["humanize2"].get("runtime_dir"),
+            "name": report["humanize2"].get("name"),
+            "version": report["humanize2"].get("version"),
+            "commit": report["humanize2"].get("commit"),
+            "flow": report["humanize2"].get("flow"),
         },
     }
     return {"toolchain": value, "sha256": util.sha256_json(value)}
@@ -763,22 +911,34 @@ def render_text(report: Dict[str, Any]) -> str:
     section("skills", report["skills"])
     section("kda workflow", report["kda"]["checks"])
     section("humanize plugin", report["humanize"]["checks"])
+    section("humanize2 runtime", report["humanize2"]["checks"])
     if report["agent_profile"]:
         section("agent commands", report["agents"])
     section("source availability", report["source_availability"]["checks"])
 
     workflow = report.get("workflow") or {}
+    backend = workflow.get("humanize_backend") or "humanize"
     writer = workflow.get("writer") or {}
     reviewer = workflow.get("reviewer") or {}
-    lines.append(
-        "workflow     : writer %s/%s, reviewer %s/%s"
-        % (
-            writer.get("command"),
-            writer.get("model"),
-            reviewer.get("command"),
-            reviewer.get("model"),
-        )
+    writer_label: str
+    reviewer_label: str
+    cleaner_label: str | None = None
+    if backend == "humanize2":
+        humanize2 = workflow.get("humanize2") or {}
+        writer_label = str(humanize2.get("first_chaser") or "-")
+        reviewer_label = str(humanize2.get("second_chaser") or "-")
+        cleaner_label = str(humanize2.get("cleaner") or "-")
+    else:
+        writer_label = "%s/%s" % (writer.get("command"), writer.get("model"))
+        reviewer_label = "%s/%s" % (reviewer.get("command"), reviewer.get("model"))
+    workflow_line = "workflow     : backend %s, writer %s, reviewer %s" % (
+        backend,
+        writer_label,
+        reviewer_label,
     )
+    if cleaner_label is not None:
+        workflow_line += ", cleaner %s" % cleaner_label
+    lines.append(workflow_line)
     lines.append("status       : %s" % report["status"])
     if report["missing"]:
         lines.append("missing      : %s" % ", ".join(report["missing"]))

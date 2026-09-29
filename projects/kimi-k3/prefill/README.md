@@ -25,6 +25,7 @@ roles:
 | `bench/`, `precision/`, `scripts/` | Shared | Reusable correctness, precision and profiling harnesses |
 | `model-profile.json`, `workloads*.json`, `*-example.json` | Shared | Public Kimi K3 and deployment inputs |
 | `experiments/` | Secondary | Unaccepted task lineages and diagnostic workloads |
+| `knowledge/` | Shared | Reusable optimization skeletons and negative evidence |
 | `archive/` | Historical | Retired reports and final historical conclusions |
 | `runtime/` | Local only | Agent sessions, runs and external evidence; ignored by Git |
 
@@ -42,3 +43,7 @@ when reproducing or extending an unaccepted optimization attempt.
 
 Raw benchmark logs and profiler captures are external artifacts. The package
 tracks their manifest and interpretation, not machine-specific output.
+
+The knowledge records are derived from those manifests and candidate lineages;
+they guide new hypotheses but never bypass the correctness, precision or
+full-workload performance gates.

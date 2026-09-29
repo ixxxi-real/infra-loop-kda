@@ -27,6 +27,16 @@ The two documents that govern new work are:
 They define how an agent chooses a strategy from source and profiler evidence,
 how KDA gates the loop, and how a candidate becomes an accepted patch.
 
+The campaign controller, profiler diagnosis schema and deterministic tuner are
+documented in [optimization control](docs/optimization-control.md). For
+example, a finite parameter space can be expanded without launching a GPU
+job:
+
+```bash
+k3ctl tune expand \
+  --manifest projects/kimi-k3/prefill/bench/tuning-manifest.example.json
+```
+
 For the current code and diff, start at
 [projects/kimi-k3/prefill/kernels](projects/kimi-k3/prefill/kernels/). Historical
 reports are intentionally under
@@ -97,6 +107,7 @@ setup, troubleshooting, and publishing instructions is in
 | `projects/<project>/<stage>/kernels/` | Current kernel code references and patches |
 | `projects/<project>/<stage>/design/` | Contract, plan and source provenance |
 | `projects/<project>/<stage>/bench/` | Correctness and timing harness |
+| `projects/<project>/<stage>/knowledge/` | Reusable optimization patterns and negative evidence |
 | `projects/<project>/<stage>/precision/` | Numerical validation |
 | `projects/<project>/<stage>/archive/` | Historical reports and retired candidates |
 | `skills/kernel-optimization/` | Primary optimization skill |
@@ -106,6 +117,8 @@ setup, troubleshooting, and publishing instructions is in
 | `external/sglang` | Pinned source runtime (Git submodule) |
 | `external/kda` | Kernel Design Agents workflow (Git submodule) |
 | `external/humanize` | Humanize loop plugin (Git submodule) |
+| `external/humanize2` | Humanize2 `hmz` flow runtime (Git submodule) |
+| `external/flowverse` | Pinned Humanize2 optimization flows (Git submodule) |
 | `tools/k3ctl.py` | Canonical control-plane CLI |
 
 The old `tasks/` directory is now only a compatibility area for synthetic
@@ -116,13 +129,21 @@ fixtures and generic tooling defaults. New model work belongs below
 
 KDA supplies the basic flow, constraints and evidence gates. The optimization
 agent chooses concrete candidates using source inspection, profiler data and
-candidate lineage. Humanize supplies the writer/reviewer loop. A parameter
-sweep is an experiment; it is not a substitute for a source-based strategy.
+candidate lineage. Humanize1 supplies the original writer/reviewer loop;
+Humanize2 is an additional flow runtime. A parameter sweep is an experiment;
+it is not a substitute for a source-based strategy.
 
-The configured workflow uses Claude as writer and Codex as reviewer. The
-reviewer is isolated from the default Codex profile: the project exports
-`CODEX_HOME=~/.codex-bak`, and the agent's PATH shim launches every nested
-review through the real Codex binary with:
+The active Humanize2 workflow uses Codex-bak for the first coding turn and
+cleanup, and an independent Claude session for review/iteration. The first and
+cleaner roles use `codex/gpt-6-astra:ultra`; the reviewer uses
+`claude/claude-opus-5:max`. The isolated Codex profile is selected through
+`CODEX_HOME=~/.codex-bak`; it is passed to the child process, not implemented as
+a shell alias. The legacy Humanize1
+adapter retains its Claude-host/Codex-reviewer protocol because that plugin
+requires Claude as its host, and is only selected explicitly.
+
+For that legacy adapter, the project's PATH shim launches every nested review
+through the real Codex binary with:
 
 ```text
 --dangerously-bypass-approvals-and-sandbox
@@ -135,6 +156,22 @@ The Humanize plugin is loaded through the project's verified no-commit overlay,
 which widens its effort parser and preserves `ultra` through the review phase.
 This is explicit configuration, not a shell alias, so it also applies when an
 agent is launched by another terminal or process.
+
+Humanize2 is an additional, independent block. It runs the pinned `hmz` CLI in
+the prepared task clone; its project-local protected wrapper delegates the
+`flame_chase_agent_cleanup` implementation from the pinned `external/flowverse`
+checkout. It gives Codex-bak the first coding turn, Claude the review/iteration
+turn, and periodically cleans the configured `work_paths` with Codex. Every
+coding turn is a fresh session. The wrapper snapshots and restores `.kda-task`
+around each cleaner epoch; candidate ledgers, benchmark summaries,
+failed-candidate reasons and raw profiler evidence must be stored below it.
+Review output is advisory only: correctness, precision and paired repeated
+benchmark gates own promotion, followed by an independent Claude or human
+review of the final evidence bundle.
+The public KDA configuration routes the existing `k3ctl agent` and `make agent-*`
+entrypoints to Humanize2; use `workflow.humanize_backend=humanize` only to
+select the legacy plugin. Humanize2 has separate state under
+`runtime/humanize2` and never reuses Humanize1's RLCR state.
 
 ## Local configuration
 

@@ -15,9 +15,11 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from . import agent as agent_mod
+from . import campaign as campaign_mod
 from . import config as config_mod
 from . import export as export_mod
-from . import lifecycle, overlay, paths, runner, taskfactory, toolchain, util
+from . import humanize2 as humanize2_mod
+from . import lifecycle, overlay, paths, runner, taskfactory, toolchain, tuning as tuning_mod, util
 from . import workspace as workspace_mod
 
 DEFAULT_CONFIG = "config/project.example.json"
@@ -213,6 +215,10 @@ def command_overlay_verify(args: argparse.Namespace) -> int:
 def command_agent_plan(args: argparse.Namespace) -> int:
     root, path, config = _validated(args)
     task_id = _task_id(args, config)
+    if config_mod.humanize_backend(config) == "humanize2":
+        result = humanize2_mod.plan(root, path, config, task_id, resume=False)
+        _emit(result)
+        return 0 if result["ready"] else 1
     result = agent_mod.plan(
         root, path, config, task_id, max_iterations=args.max_iterations
     )
@@ -223,6 +229,9 @@ def command_agent_plan(args: argparse.Namespace) -> int:
 def command_agent_start(args: argparse.Namespace) -> int:
     root, path, config = _validated(args)
     task_id = _task_id(args, config)
+    if config_mod.humanize_backend(config) == "humanize2":
+        _emit(humanize2_mod.start(root, path, config, task_id, resume=False))
+        return 0
     _emit(
         agent_mod.start(
             root, path, config, task_id, max_iterations=args.max_iterations
@@ -234,6 +243,9 @@ def command_agent_start(args: argparse.Namespace) -> int:
 def command_agent_status(args: argparse.Namespace) -> int:
     root, path, config = _validated(args)
     task_id = _task_id(args, config)
+    if config_mod.humanize_backend(config) == "humanize2":
+        _emit(humanize2_mod.status(root, config, task_id))
+        return 0
     _emit(agent_mod.status(root, config, task_id))
     return 0
 
@@ -241,6 +253,9 @@ def command_agent_status(args: argparse.Namespace) -> int:
 def command_agent_resume(args: argparse.Namespace) -> int:
     root, path, config = _validated(args)
     task_id = _task_id(args, config)
+    if config_mod.humanize_backend(config) == "humanize2":
+        _emit(humanize2_mod.start(root, path, config, task_id, resume=True))
+        return 0
     _emit(agent_mod.resume(root, path, config, task_id))
     return 0
 
@@ -248,6 +263,10 @@ def command_agent_resume(args: argparse.Namespace) -> int:
 def command_agent_stop(args: argparse.Namespace) -> int:
     root, path, config = _validated(args)
     task_id = _task_id(args, config)
+    if config_mod.humanize_backend(config) == "humanize2":
+        result = humanize2_mod.stop(root, config, task_id, timeout=args.timeout)
+        _emit(result)
+        return 0 if result.get("stopped") or result.get("detail") == "no Humanize2 session" else 1
     result = agent_mod.stop(
         root,
         config,
@@ -258,6 +277,90 @@ def command_agent_stop(args: argparse.Namespace) -> int:
     )
     _emit(result)
     return 0 if result["exited"] else 1
+
+
+# ------------------------------------------------------------- Humanize2
+
+
+def command_humanize2_plan(args: argparse.Namespace) -> int:
+    root, path, config = _validated(args)
+    task_id = _task_id(args, config)
+    result = humanize2_mod.plan(root, path, config, task_id, resume=bool(args.resume))
+    _emit(result)
+    return 0 if result["ready"] else 1
+
+
+def command_humanize2_start(args: argparse.Namespace) -> int:
+    root, path, config = _validated(args)
+    task_id = _task_id(args, config)
+    _emit(humanize2_mod.start(root, path, config, task_id, resume=bool(args.resume)))
+    return 0
+
+
+def command_humanize2_status(args: argparse.Namespace) -> int:
+    root, path, config = _validated(args)
+    task_id = _task_id(args, config)
+    _emit(humanize2_mod.status(root, config, task_id))
+    return 0
+
+
+def command_humanize2_stop(args: argparse.Namespace) -> int:
+    root, path, config = _validated(args)
+    task_id = _task_id(args, config)
+    _emit(humanize2_mod.stop(root, config, task_id, timeout=args.timeout))
+    return 0
+
+
+# --------------------------------------------------------- campaign / tuning
+
+
+def _root_relative(root: Path, raw: str) -> Path:
+    """Resolve a control-plane file without allowing path escape."""
+    candidate = Path(raw)
+    if candidate.is_absolute():
+        raise paths.PathError("control-plane paths must be relative to the project root")
+    return paths.safe_join(root, raw)
+
+
+def command_campaign_init(args: argparse.Namespace) -> int:
+    root = _root()
+    path = _root_relative(root, args.file)
+    record = campaign_mod.new(
+        args.id,
+        args.task,
+        args.base_commit,
+        args.workload_hash,
+        args.gate_version,
+        max_candidates=args.max_candidates,
+    )
+    campaign_mod.save(path, record)
+    _emit(record)
+    return 0
+
+
+def command_campaign_transition(args: argparse.Namespace) -> int:
+    root = _root()
+    path = _root_relative(root, args.file)
+    record = campaign_mod.load(path)
+    record = campaign_mod.transition(record, args.status, actor=args.actor, reason=args.reason)
+    campaign_mod.save(path, record)
+    _emit(record)
+    return 0
+
+
+def command_campaign_status(args: argparse.Namespace) -> int:
+    root = _root()
+    path = _root_relative(root, args.file)
+    _emit(campaign_mod.load(path))
+    return 0
+
+
+def command_tune_expand(args: argparse.Namespace) -> int:
+    root = _root()
+    path = _root_relative(root, args.manifest)
+    manifest = tuning_mod.load(path)
+    _emit({"manifest": str(path), "trials": tuning_mod.expand(manifest)})
+    return 0
 
 
 # ----------------------------------------------------------------------- run
@@ -414,7 +517,7 @@ def build_parser() -> argparse.ArgumentParser:
     ov_verify.set_defaults(func=command_overlay_verify)
 
     agent = subparsers.add_parser(
-        "agent", help="Claude + Humanize loop adapter"
+        "agent", help="default KDA workflow adapter (Humanize2 in the public config)"
     )
     agent_sub = agent.add_subparsers(dest="agent_command", required=True)
 
@@ -443,6 +546,55 @@ def build_parser() -> argparse.ArgumentParser:
     ag_stop.add_argument("--process-group", action="store_true")
     ag_stop.add_argument("--timeout", type=float, default=15.0)
     ag_stop.add_argument("--escalate", action="store_true")
+
+    humanize2 = subparsers.add_parser(
+        "humanize2", help="Humanize2 hmz flow adapter (independent of Humanize1)"
+    )
+    humanize2_sub = humanize2.add_subparsers(dest="humanize2_command", required=True)
+
+    def add_humanize2(name: str, func, help_text: str):
+        sub = humanize2_sub.add_parser(name, help=help_text)
+        sub.add_argument("--config", default=DEFAULT_CONFIG)
+        sub.add_argument("--task")
+        sub.set_defaults(func=func)
+        return sub
+
+    h2_plan = add_humanize2("plan", command_humanize2_plan, "dry run; never spawns")
+    h2_plan.add_argument("--resume", action="store_true", help="plan a continuation")
+    h2_start = add_humanize2("start", command_humanize2_start, "launch the configured hmz flow")
+    h2_start.add_argument("--resume", action="store_true", help="continue an existing hmz run")
+    add_humanize2("status", command_humanize2_status, "report the recorded hmz process")
+    h2_stop = add_humanize2("stop", command_humanize2_stop, "stop the recorded hmz process")
+    h2_stop.add_argument("--timeout", type=float, default=15.0)
+
+    campaign = subparsers.add_parser(
+        "campaign", help="persistent, evaluator-owned optimization campaign state"
+    )
+    campaign_sub = campaign.add_subparsers(dest="campaign_command", required=True)
+    cp_init = campaign_sub.add_parser("init", help="create a campaign record")
+    cp_init.add_argument("--file", required=True, help="path relative to project root")
+    cp_init.add_argument("--id", required=True)
+    cp_init.add_argument("--task", required=True)
+    cp_init.add_argument("--base-commit", required=True)
+    cp_init.add_argument("--workload-hash", required=True)
+    cp_init.add_argument("--gate-version", required=True)
+    cp_init.add_argument("--max-candidates", type=int, default=4)
+    cp_init.set_defaults(func=command_campaign_init)
+    cp_transition = campaign_sub.add_parser("transition", help="record a state transition")
+    cp_transition.add_argument("--file", required=True)
+    cp_transition.add_argument("--status", required=True, choices=campaign_mod.KNOWN)
+    cp_transition.add_argument("--actor", default="orchestrator")
+    cp_transition.add_argument("--reason")
+    cp_transition.set_defaults(func=command_campaign_transition)
+    cp_status = campaign_sub.add_parser("status", help="show a campaign record")
+    cp_status.add_argument("--file", required=True)
+    cp_status.set_defaults(func=command_campaign_status)
+
+    tune = subparsers.add_parser("tune", help="deterministic parameter-space tools")
+    tune_sub = tune.add_subparsers(dest="tune_command", required=True)
+    tune_expand = tune_sub.add_parser("expand", help="expand a tuning manifest")
+    tune_expand.add_argument("--manifest", required=True)
+    tune_expand.set_defaults(func=command_tune_expand)
 
     run = subparsers.add_parser("run", help="runner adapter operations")
     run_sub = run.add_subparsers(dest="run_command", required=True)

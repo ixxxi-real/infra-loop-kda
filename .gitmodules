@@ -11,3 +11,11 @@
 	path = external/humanize
 	url = https://github.com/PolyArch/humanize.git
 	shallow = true
+[submodule "external/humanize2"]
+	path = external/humanize2
+	url = https://github.com/humanfia/humanize.git
+	shallow = true
+[submodule "external/flowverse"]
+	path = external/flowverse
+	url = https://github.com/humanfia/flowverse.git
+	shallow = true

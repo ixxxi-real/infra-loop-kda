@@ -332,7 +332,7 @@ Fresh scaffold created by `k3ctl task-create`. It is intentionally
 # 3. Materialise the exact base commit.
 k3ctl workspace prepare --task {task_id}
 # 4. Set "status" to "ready" in task.json.
-k3ctl agent plan --task {task_id}
+k3ctl {workflow_plan_command} --task {task_id}
 ```
 
 No acceptance, patch, report or evidence manifest is scaffolded. Those are
@@ -418,6 +418,11 @@ def scaffold(
         "kda_sha": kda_reference.get("prompt_sha256") or "unavailable (submodule not initialized)",
         "kda_commit": kda_reference.get("kda_commit") or "unavailable",
         "attribution": attribution,
+        "workflow_plan_command": (
+            "humanize2 plan"
+            if config_mod.humanize_backend(config) == "humanize2"
+            else "agent plan"
+        ),
     }
 
     files: Dict[str, str] = {

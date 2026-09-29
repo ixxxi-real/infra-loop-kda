@@ -12,6 +12,7 @@ Module map:
 ``workspace``   isolated source workspace preparation
 ``overlay``     audited no-commit Humanize compatibility overlay
 ``agent``       Claude + Humanize loop adapter
+``humanize2``   Humanize2 ``hmz`` flow adapter
 ``runner``      runner adapter protocol and the local-command adapter
 ``supervise``   exit-status supervisor for detached runs
 ``export``      delivery and evidence export
@@ -24,6 +25,7 @@ __all__ = [
     "config",
     "export",
     "gitq",
+    "humanize2",
     "lifecycle",
     "overlay",
     "paths",

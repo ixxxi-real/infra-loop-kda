@@ -1,28 +1,14 @@
 # Task: prefill-kda-iter2
 
-Fresh scaffold created by `k3ctl task-create`. It is intentionally
-**unstartable**: the workload is a placeholder and no plan has been written.
+This task records a second, isolated optimization round for the complete
+Kimi K3 prefill `chunk_kda` pipeline on GB300. The accepted parent task is
+immutable. The exact base is commit
+`9ac2710bd37622f38edb078cc753244a3c38c334`; workload and evidence are kept
+under `runtime/remote-evidence/`.
 
-| File | Purpose |
-| --- | --- |
-| `task.json` | Canonical task state. Nothing else overrides it. |
-| `contract.md` | Objective, correctness, commands, promotion rules. |
-| `source-trace.md` | Exact base commit and how to verify it. |
-| `plan-input.md` | Human input to planning. |
-| `prompt.md` | Implementation prompt derived from the KDA basic flow. |
-| `workloads.placeholder.json` | Replace with a resolved workload. |
-| `model-profile.json` | Model facts this task depends on. |
-
-## Making it startable
-
-```bash
-# 1. Resolve the workload, then set workload_status to "resolved" in task.json.
-# 2. Write plan-input.md into an executable plan.
-# 3. Materialise the exact base commit.
-k3ctl workspace prepare --task prefill-kda-iter2
-# 4. Set "status" to "ready" in task.json.
-k3ctl agent plan --task prefill-kda-iter2
-```
-
-No acceptance, patch, report or evidence manifest is scaffolded. Those are
-produced by real runs and reviewed separately.
+The full pipeline profile identified the H-state update as the dominant warmed
+stage. Four H tile/warp candidates were tested on GPU2 with correctness,
+precision, and paired 51-case benchmarks; none met the 1.03x promotion gate.
+The workspace is restored to the base source, and no serving integration was
+performed. See `docs/optimization-round-20260928.md` and
+`candidates.jsonl`.

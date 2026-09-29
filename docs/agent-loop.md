@@ -1,5 +1,10 @@
 # The agent loop
 
+> The public configuration now routes `k3ctl agent` to Humanize2. This page
+> documents the legacy Humanize1 adapter when
+> `workflow.humanize_backend` is explicitly set to `humanize`; see
+> [humanize2.md](humanize2.md) for the default KDA workflow.
+
 Claude is the sole writer. Codex reviews. The loop itself is upstream Humanize's
 `/humanize:start-rlcr-loop` — this project does not reimplement it, does not
 call the Humanize setup script directly, and never writes loop state or a review

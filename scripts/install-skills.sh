@@ -92,6 +92,10 @@ if [[ ! -f skills/kernel-optimization/SKILL.md ]]; then
   echo "miss skills/kernel-optimization/SKILL.md is not present" >&2
   missing=1
 fi
+if [[ ! -f skills/humanize2/SKILL.md ]]; then
+  echo "miss skills/humanize2/SKILL.md is not present" >&2
+  missing=1
+fi
 if [[ "$missing" -ne 0 ]]; then
   # State the outcome explicitly on every exit path. A caller -- or a CI step --
   # must be able to confirm that nothing was written without having to infer it
@@ -102,11 +106,12 @@ if [[ "$missing" -ne 0 ]]; then
 fi
 
 # name -> source path, as parallel arrays (portable to bash 3.2).
-skill_names=(kernel-optimization kernelwiki ncu-report-skill)
+skill_names=(kernel-optimization kernelwiki ncu-report-skill humanize2)
 skill_sources=(
   skills/kernel-optimization
   external/kda/skills/KernelWiki
   external/kda/skills/ncu-report-skill
+  skills/humanize2
 )
 
 # ------------------------------------------------------------------- report
@@ -197,6 +202,7 @@ Skills linked in $target_dir:
   kimi-k3-kda       project contract and validation rules
   kernelwiki        KDA kernel references (from external/kda)
   ncu-report-skill  Nsight Compute analysis (from external/kda)
+  humanize2         Humanize2 hmz flow operating rules
 
 Humanize is not installed globally by this script. This project loads the
 pinned plugin directly with Claude's --plugin-dir, so no global installation

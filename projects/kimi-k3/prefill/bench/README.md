@@ -13,3 +13,16 @@ python3 -B projects/kimi-k3/prefill/bench/preflight.py \
 ```
 
 GPU execution requires a separately prepared baseline and candidate source root. The harness does not select a gateway, GPU UUID, container or checkpoint automatically. Use an environment-specific runner to create those roots and store only a redacted evidence manifest in `evidence/`.
+
+# Deterministic tuner lane
+
+`tuning-manifest.example.json` declares a finite parameter space for the
+project-specific benchmark. Expand it with:
+
+```bash
+k3ctl tune expand --manifest projects/kimi-k3/prefill/bench/tuning-manifest.example.json
+```
+
+The command only emits stable trial/configuration hashes. Every trial still
+has to pass the existing full correctness, precision, paired timing and
+geomean gates before it can be considered by a campaign.

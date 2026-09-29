@@ -9,11 +9,13 @@ directory:
 | `kernel-optimization` | `skills/kernel-optimization` | Project contract, evidence and source-compatibility rules |
 | `kernelwiki` | `external/kda/skills/KernelWiki` | Kernel design references and query tools |
 | `ncu-report-skill` | `external/kda/skills/ncu-report-skill` | Nsight Compute collection and diagnosis |
+| `humanize2` | `skills/humanize2` | Humanize2 `hmz` flow operating rules |
 
-Kernel Design Agents (`external/kda`) and Humanize (`external/humanize`) remain
+Kernel Design Agents (`external/kda`) and Humanize1 (`external/humanize`) remain
 upstream submodules. This repository does not copy or silently fork their skill
 implementations, so updating a skill is an explicit submodule update that can be
-reviewed in Git.
+reviewed in Git. Humanize2 is pinned under `external/humanize2`; the
+`skills/humanize2` entry documents how the control-plane adapter invokes it.
 
 ## The installer writes nothing by default
 

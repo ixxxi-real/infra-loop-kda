@@ -47,7 +47,8 @@ accurate and the upstream licence is respected.
 
 ## Why a fresh scaffold cannot start
 
-By design. `k3ctl agent start` refuses it, and `agent plan` lists why:
+By design. `k3ctl agent start` (which uses the configured Humanize backend;
+Humanize2 in the public config) refuses it, and `agent plan` lists why:
 
 - `status` is `scaffolded`, not `ready`;
 - `workload_status` is `placeholder`, and only an explicit `resolved` passes;

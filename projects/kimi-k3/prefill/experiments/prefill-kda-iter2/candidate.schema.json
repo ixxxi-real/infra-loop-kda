@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "infra-loop-kda/prefill-kda-candidate-v1",
+  "title": "Controlled KDA prefill candidate",
+  "type": "object",
+  "required": [
+    "candidate_id",
+    "parent_task",
+    "status",
+    "search_lane",
+    "gate_version",
+    "diagnosis_ref",
+    "limiter_class"
+  ],
+  "properties": {
+    "candidate_id": {"type": "string", "minLength": 1},
+    "parent_task": {"type": "string", "minLength": 1},
+    "parent_candidate": {"type": ["string", "null"]},
+    "status": {"enum": ["proposed", "running", "verified", "rejected", "promoted", "blocked"]},
+    "search_lane": {"enum": ["structural", "dispatch", "deterministic-tuner", "serving"]},
+    "gate_version": {"type": "string", "minLength": 1},
+    "diagnosis_ref": {"type": "string", "minLength": 1},
+    "limiter_class": {"type": "string", "minLength": 1},
+    "repro_count": {"type": "integer", "minimum": 0},
+    "negative_evidence": {"type": "array", "items": {"type": "string"}},
+    "config_hash": {"type": ["string", "null"]}
+  },
+  "additionalProperties": true
+}

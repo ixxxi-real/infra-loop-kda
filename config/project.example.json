@@ -25,15 +25,27 @@
       "path": "external/humanize",
       "repository": "https://github.com/PolyArch/humanize.git",
       "commit": "4eeb392cd2450c3df99cb898bd6b24839967bbc3"
+    },
+    "humanize2": {
+      "path": "external/humanize2",
+      "repository": "https://github.com/humanfia/humanize.git",
+      "commit": "d9fd35e9b43b0616860ee1e5359494abe0fcd15c"
+    },
+    "flowverse": {
+      "path": "external/flowverse",
+      "repository": "https://github.com/humanfia/flowverse.git",
+      "commit": "59546b7c572f06a7c71304952a4898fde5c2dc7e"
     }
   },
   "skills": {
     "project": "skills/kernel-optimization/SKILL.md",
     "kernelwiki": "external/kda/skills/KernelWiki/SKILL.md",
     "ncu_report": "external/kda/skills/ncu-report-skill/SKILL.md",
-    "humanize": "external/humanize/skills/humanize/SKILL.md"
+    "humanize": "external/humanize/skills/humanize/SKILL.md",
+    "humanize2": "skills/humanize2/SKILL.md"
   },
   "workflow": {
+    "humanize_backend": "humanize2",
     "writer": {
       "command": "claude",
       "model": "opus",
@@ -52,6 +64,21 @@
       "plugin_dir": "external/humanize",
       "start_command": "/humanize:start-rlcr-loop",
       "cancel_command": "/humanize:cancel-rlcr-loop"
+    },
+    "humanize2": {
+      "runtime_dir": "external/humanize2",
+      "command": "hmz",
+      "flow": "flows/infra_loop_kda_flame_chase",
+      "first_chaser": "codex/gpt-6-astra:ultra",
+      "second_chaser": "claude/claude-opus-5:max",
+      "cleaner": "codex/gpt-6-astra:ultra",
+      "work_paths": [
+        "python",
+        ".kda-task"
+      ],
+      "budget": "duration=12h,cost=100",
+      "codex_home": "~/.codex-bak",
+      "resume": true
     },
     "kda": {
       "prompt": "external/kda/prompts/basic-flow.md",

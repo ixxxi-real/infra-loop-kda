@@ -13,10 +13,14 @@ class K3CtlTests(unittest.TestCase):
 
     def test_public_example_declares_workflow_dependencies_and_skills(self) -> None:
         _, config = k3ctl.resolve_config("config/project.example.json")
-        self.assertEqual(set(config["dependencies"]), {"kda", "humanize"})
         self.assertEqual(
-            set(config["skills"]), {"project", "kernelwiki", "ncu_report", "humanize"}
+            set(config["dependencies"]), {"kda", "humanize", "humanize2", "flowverse"}
         )
+        self.assertEqual(
+            set(config["skills"]),
+            {"project", "kernelwiki", "ncu_report", "humanize", "humanize2"},
+        )
+        self.assertEqual(config["workflow"]["humanize_backend"], "humanize2")
 
     def test_local_config_requires_full_source_sha(self) -> None:
         with tempfile.TemporaryDirectory() as temp:

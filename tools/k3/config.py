@@ -21,8 +21,13 @@ TASK_ID_RE = re.compile(r"^[a-z0-9][a-z0-9._-]{1,63}$")
 #: Reasoning efforts the pinned Humanize release accepts natively.
 UPSTREAM_EFFORTS = ("xhigh", "high", "medium", "low")
 
-#: Defaults for the actual workflow: Claude writes, Codex reviews.
+#: Defaults for both adapters. The active public workflow is Humanize2; its
+#: three roles below all use the isolated Codex profile. The legacy Humanize1
+#: fields remain available for old local configurations.
 DEFAULT_WORKFLOW: Dict[str, Any] = {
+    # Backwards-compatible default for local configurations that predate the
+    # Humanize2 block. The public project config opts into Humanize2 explicitly.
+    "humanize_backend": "humanize",
     "writer": {
         "command": "claude",
         "model": "opus",
@@ -44,6 +49,21 @@ DEFAULT_WORKFLOW: Dict[str, Any] = {
         "plugin_dir": "external/humanize",
         "start_command": "/humanize:start-rlcr-loop",
         "cancel_command": "/humanize:cancel-rlcr-loop",
+    },
+    # Humanize2 is a separate Python/CLI runtime.  It deliberately lives next
+    # to the Humanize1 plugin instead of replacing it: existing RLCR sessions
+    # and their state remain owned by the old adapter.
+    "humanize2": {
+        "runtime_dir": "external/humanize2",
+        "command": "hmz",
+        "flow": "flows/infra_loop_kda_flame_chase",
+        "first_chaser": "codex/gpt-6-astra:ultra",
+        "second_chaser": "claude/claude-opus-5:max",
+        "cleaner": "codex/gpt-6-astra:ultra",
+        "work_paths": ["python", ".kda-task"],
+        "budget": "duration=12h,cost=100",
+        "codex_home": "~/.codex-bak",
+        "resume": True,
     },
     "kda": {
         "prompt": "external/kda/prompts/basic-flow.md",
@@ -133,7 +153,14 @@ def _validate_dependencies(
     if not isinstance(dependencies, dict):
         errors.append("dependencies must be an object")
         return
-    for name in ("kda", "humanize"):
+    # humanize2 is optional for backwards-compatible local configurations.  A
+    # config that declares the block gets the same strict pin validation as the
+    # two original dependencies.
+    names = ("kda", "humanize")
+    for optional in ("humanize2", "flowverse"):
+        if optional in dependencies:
+            names += (optional,)
+    for name in names:
         dependency = dependencies.get(name)
         if not isinstance(dependency, dict):
             errors.append("dependencies.%s must be an object" % name)
@@ -252,6 +279,9 @@ def _validate_workflow(config: Dict[str, Any], errors: List[str]) -> None:
     if not isinstance(workflow, dict):
         errors.append("workflow must be an object")
         return
+    backend = workflow.get("humanize_backend")
+    if backend is not None and backend not in ("humanize", "humanize2"):
+        errors.append("workflow.humanize_backend must be 'humanize' or 'humanize2'")
     for role in ("writer", "reviewer"):
         section = workflow.get(role)
         if section is None:
@@ -290,6 +320,35 @@ def _validate_workflow(config: Dict[str, Any], errors: List[str]) -> None:
         skip_quiz = humanize.get("skip_quiz")
         if skip_quiz is not None and not isinstance(skip_quiz, bool):
             errors.append("workflow.humanize.skip_quiz must be a boolean")
+    humanize2 = workflow.get("humanize2")
+    if humanize2 is not None:
+        if not isinstance(humanize2, dict):
+            errors.append("workflow.humanize2 must be an object")
+        else:
+            for key in ("runtime_dir", "command", "flow"):
+                value = humanize2.get(key)
+                if value is not None and (not isinstance(value, str) or not value.strip()):
+                    errors.append("workflow.humanize2.%s must be a non-empty string" % key)
+            for key in ("first_chaser", "second_chaser", "cleaner"):
+                value = humanize2.get(key)
+                if value is not None and (not isinstance(value, str) or not value.strip()):
+                    errors.append("workflow.humanize2.%s must be a non-empty string" % key)
+            budget = humanize2.get("budget")
+            if budget is not None and (not isinstance(budget, str) or not budget.strip()):
+                errors.append("workflow.humanize2.budget must be a non-empty string")
+            work_paths = humanize2.get("work_paths")
+            if work_paths is not None and (
+                not isinstance(work_paths, list)
+                or not work_paths
+                or any(not isinstance(item, str) or not item.strip() for item in work_paths)
+            ):
+                errors.append("workflow.humanize2.work_paths must be a non-empty string list")
+            resume = humanize2.get("resume")
+            if resume is not None and not isinstance(resume, bool):
+                errors.append("workflow.humanize2.resume must be a boolean")
+            codex_home = humanize2.get("codex_home")
+            if codex_home is not None and (not isinstance(codex_home, str) or not codex_home.strip()):
+                errors.append("workflow.humanize2.codex_home must be a non-empty string")
 
 
 def _validate_overlay(config: Dict[str, Any], errors: List[str]) -> None:
@@ -410,6 +469,12 @@ def _merge_defaults(defaults: Dict[str, Any], override: Any) -> Dict[str, Any]:
 def workflow_settings(config: Dict[str, Any]) -> Dict[str, Any]:
     """Workflow settings with project defaults applied."""
     return _merge_defaults(DEFAULT_WORKFLOW, config.get("workflow"))
+
+
+def humanize_backend(config: Dict[str, Any]) -> str:
+    """Return the selected KDA writer/reviewer workflow backend."""
+    value = (config.get("workflow") or {}).get("humanize_backend", "humanize")
+    return str(value or "humanize")
 
 
 def runner_settings(config: Dict[str, Any]) -> Dict[str, Any]:

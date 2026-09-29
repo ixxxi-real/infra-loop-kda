@@ -5,7 +5,7 @@
   "kind": "prefill",
   "status": "prepared",
   "created_at": "2026-09-23T13:48:57Z",
-  "objective": "\u7ee7\u7eed\u4f18\u5316 Kimi K3 prefill \u7684 chunk_kda kernel\uff0c\u5728\u5f53\u524d 9ac2710bd \u57fa\u7ebf\u548c TP8/GB300 workload \u4e0a\u5bfb\u627e\u53ef\u8bc1\u660e\u7684\u7aef\u5230\u7aef\u6536\u76ca\uff1b\u4fdd\u6301 chunk_kda ABI\u3001\u72b6\u6001\u5199\u56de\u3001gate \u8bed\u4e49\u548c\u7cbe\u5ea6\u4e0d\u53d8\uff0c\u5019\u9009\u5fc5\u987b\u7ecf\u8fc7\u72ec\u7acb\u6b63\u786e\u6027\u3001\u7cbe\u5ea6\u3001\u914d\u5bf9\u6027\u80fd\u548c\u5fc5\u8981\u7684 NCU/NSYS \u8bc1\u636e\u3002",
+  "objective": "继续优化 Kimi K3 prefill 的 chunk_kda kernel，在当前 9ac2710bd 基线和 TP8/GB300 workload 上寻找可证明的端到端收益；保持 chunk_kda ABI、状态写回、gate 语义和精度不变，候选必须经过独立正确性、精度、配对性能和必要的 NCU/NSYS 证据。",
   "source": {
     "repository": "https://github.com/Infrawaves/sglang.git",
     "branch": "feat/kimi_k3_support_sp",
@@ -16,7 +16,8 @@
   "allowed_source_files": [
     "python/sglang/kernels/ops/attention/fla/kda.py",
     "python/sglang/kernels/ops/attention/fla/l2norm.py",
-    "python/sglang/kernels/ops/attention/fla/chunk_intra.py"
+    "python/sglang/kernels/ops/attention/fla/chunk_intra.py",
+    "python/sglang/kernels/ops/attention/fla/chunk_delta_h.py"
   ],
   "workload_file": "workloads.resolved.json",
   "model_profile_file": "model-profile.json",
@@ -36,7 +37,9 @@
     "rules": [
       "Validation command passes with zero failures and a non-zero case count.",
       "Performance evidence is recorded with the exact source commit and workload definition.",
-      "A rejected candidate records the reason instead of being silently discarded."
+      "A rejected candidate records the reason instead of being silently discarded.",
+      "Every candidate uses the immutable baseline with repeated interleaved paired trials; smoke runs cannot satisfy acceptance.",
+      "The final candidate has an independent Claude or human review over the frozen evidence bundle."
     ],
     "requires_human_review": true
   },
@@ -56,9 +59,9 @@
     "attribution": "NVlabs Kernel Design Agents (Kernel Design Agents workflow, not an SDK). See THIRD_PARTY_NOTICES.md and external/kda/LICENSE."
   },
   "next_actions": [
-    "Run k3ctl agent plan to freeze the KDA/Humanize invocation.",
-    "Start the isolated optimization loop; do not modify accepted prefill-kda.",
-    "Run correctness and performance evidence on GB300 before any promotion."
+    "Use the NCU H-stage evidence to design one structural candidate, or leave the base unchanged if no contract-safe transformation is identified.",
+    "Do not promote a parameter-only result without two independent full paired runs.",
+    "Serving validation remains not performed until an operator candidate passes the workload gates."
   ],
   "parent_task": "prefill-kda"
 }

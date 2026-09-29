@@ -13,9 +13,10 @@ write-back, FP32 tracking, return aliases and all fallback paths.
 ## Target and allowed files
 
 The primary entrypoint is
-`python/sglang/kernels/ops/attention/fla/kda.py::chunk_kda`. The helper
-`python/sglang/kernels/ops/attention/fla/l2norm.py` may be changed only when it
-is part of one measured candidate. No other source file may be edited.
+`python/sglang/kernels/ops/attention/fla/kda.py::chunk_kda`. The measured
+pipeline includes its `chunk_intra`, `chunk_delta_h` (H state update), and
+output stages. `l2norm.py` and `chunk_delta_h.py` may be changed only when
+they are part of one measured candidate. No other source file may be edited.
 The baseline is commit `9ac2710bd37622f38edb078cc753244a3c38c334`.
 
 The copied workload matrix has 62 bounded cases covering chunk boundaries,
@@ -41,18 +42,31 @@ than 5%. Record launch configuration, effective backend, source revision and
 workload checksum. Use NCU/NSYS to explain the limiter before choosing a
 structural candidate; do not promote a blind parameter sweep.
 
+The baseline tree is immutable for every candidate. Each benchmark invocation
+must interleave baseline and candidate trials with the same workload seed,
+restore state before every timed replay, and retain at least two independent
+paired runs. A smoke run is diagnostic only and cannot satisfy this gate. The
+reviewer may return only a pass/reject rationale; the benchmark harness, not the
+reviewer, decides whether the performance gate passed.
+
 ## Constraints
 
 - Keep the implementation in Triton/PyTorch code already used by this path;
   defer a CUDA rewrite until a measured Triton candidate is shown insufficient.
 - One candidate at a time; rejected candidates stay in `candidates.jsonl` with
   their measured reason.
+- Keep `candidates.jsonl`, `benchmark.csv`, rejected-candidate reasons, failed-run
+  logs and raw NCU/NSYS/profiler artifacts under `.kda-task/evidence/` (or another
+  path below `.kda-task`). Humanize2 cleanup is forbidden from deleting or
+  rewriting these records.
 - Preserve TP8 prefill dispatch, ragged handling, cache/state semantics and all
   unsupported-layout fallbacks.
 - Do not use Triton autotune configurations that replay a kernel which mutates
   state unless the harness restores every state/output buffer safely.
 - Human review is required before `accepted`; serving integration is a separate
   state and is not implied by kernel acceptance.
+- The final candidate requires an independent Claude or human review over the
+  frozen evidence bundle after all automated gates pass.
 
 ## Commands
 

@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "kernel": "chunk_gated_delta_rule_fwd_kernel_h",
+  "gate_version": "prefill-kda-v2-full-1.03",
+  "seed": 20260929,
+  "search_lane": "deterministic-tuner",
+  "search_space": {
+    "BV": [16, 32],
+    "num_warps": [2, 4],
+    "num_stages": [2, 3]
+  },
+  "evaluation": {
+    "correctness": "full",
+    "precision": "full",
+    "performance": "paired-full-workload",
+    "min_trials": 3
+  }
+}

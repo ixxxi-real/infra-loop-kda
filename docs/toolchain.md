@@ -6,9 +6,11 @@ guessing which parts are machine-specific:
 1. **Control plane** — Python 3.9+, the root `tools/k3ctl.py`, metadata,
    reports, and CPU-only unit tests. `make setup` installs this layer in a
    local virtual environment without external Python dependencies.
-2. **Workflow layer** — the `external/kda` and `external/humanize` submodules.
-   KDA supplies KernelWiki and NCU skills recursively; Humanize supplies the
-   planning/review loop and its Codex hook installer.
+2. **Workflow layer** — the `external/kda`, `external/humanize`,
+   `external/humanize2` and `external/flowverse` submodules. KDA supplies
+   KernelWiki and NCU skills recursively; Humanize1 supplies the Claude plugin
+   loop, while Humanize2 supplies the independent `hmz` runtime and its pinned
+   optimization flow.
 3. **GPU runtime layer** — `external/sglang`, CUDA, PyTorch, model checkpoints,
    containers, and a target GPU. This layer is deliberately not pinned to one
    host image because it must match the deployment machine.
@@ -53,6 +55,15 @@ Request it explicitly with `--with-humanize-installer` if you want it anyway.
 
 The project skill is tracked at `skills/kernel-optimization/SKILL.md`; upstream skills
 remain in their submodules. See [`skills/README.md`](../skills/README.md).
+
+Humanize2 is not installed into the control-plane virtualenv. If the new block
+is selected, install its pinned CLI explicitly:
+
+```bash
+uv tool install --editable external/humanize2
+git submodule update --init --recursive external/flowverse
+make humanize2-plan CONFIG=config/project.local.json TASK=prefill-kda
+```
 
 ## GPU task setup
 

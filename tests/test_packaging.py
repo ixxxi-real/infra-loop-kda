@@ -301,7 +301,7 @@ class SkillsInstallerTests(unittest.TestCase):
             )
             links = sorted(p.name for p in (home / "skills").iterdir())
             self.assertEqual(
-                links, ["kernel-optimization", "kernelwiki", "ncu-report-skill"]
+                links, ["humanize2", "kernel-optimization", "kernelwiki", "ncu-report-skill"]
             )
             for name in links:
                 self.assertTrue((home / "skills" / name).is_symlink())
