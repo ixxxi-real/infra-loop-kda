@@ -100,9 +100,12 @@ make workspace-status CONFIG=config/project.local.json TASK=prefill-kda
 
 The control-plane bootstrap does not install agent CLIs or provider
 credentials. For the default Humanize2 workflow, install and authenticate the
-tools on the machine that will run the loop, then verify them before starting:
+tools on the machine that will run the loop, then verify them before starting.
+`uv` is a separate host tool; install it with the site's package manager (or
+Python's user site) if it is absent:
 
 ```bash
+uv --version                         # install uv first if this fails
 uv tool install --editable external/humanize2
 hmz --version
 claude --version
@@ -110,11 +113,31 @@ codex --version
 make doctor-agent CONFIG=config/project.local.json TASK=<unresolved-task-id>
 ```
 
-The Codex profile is selected through `CODEX_HOME` in the local configuration;
-the repository never stores credentials. CUDA, PyTorch, Triton, Nsight Compute,
-the model checkpoint, serving image and site-specific gateway or scheduler
-wrappers remain deployment prerequisites and must be supplied by the target
-GPU environment.
+Authentication is provider-specific and is intentionally not automated by this
+repository. Complete the normal Claude/Codex sign-in or gateway setup for the
+selected profiles, then verify that the commands work under the same user and
+`CODEX_HOME` that will launch the loop. Never put tokens in JSON config or Git.
+The Codex profile is selected through `CODEX_HOME` in the local configuration.
+
+Before a GPU run, check the runtime inside the selected host/container rather
+than assuming the control plane installed it:
+
+```bash
+nvidia-smi
+python3 - <<'PY'
+import torch, triton
+assert torch.cuda.is_available()
+print(torch.__version__, torch.version.cuda, triton.__version__)
+print(torch.cuda.get_device_name(0))
+PY
+ncu --version
+```
+
+CUDA, PyTorch, Triton, Nsight Compute, the model checkpoint, serving image and
+site-specific gateway or scheduler wrappers remain deployment prerequisites and
+must be supplied by the target GPU environment. The project does not prescribe
+one version matrix because it must match the target GPU and image; record the
+actual versions in the run manifest.
 
 The accepted `prefill-kda` task is immutable, so `agent-plan` intentionally
 refuses it. Use it only to inspect or reproduce the accepted result. For new
@@ -124,6 +147,22 @@ configuration, then run:
 ```bash
 make agent-plan CONFIG=config/project.local.json TASK=<unresolved-task-id>
 ```
+
+The complete order for a new optimization task is:
+
+1. Create an unresolved task with `k3ctl task-create`; do not copy the accepted
+   `prefill-kda` package.
+2. Resolve and hash the real workload, fill the task contract and register the
+   task in `config/project.local.json`.
+3. Run `make validate`, `make doctor-agent`, and
+   `make workspace-prepare CONFIG=config/project.local.json TASK=<task-id>`.
+4. Inspect `make agent-plan` or `make humanize2-plan`; these commands start
+   nothing and must report no blockers.
+5. Start Humanize2, then run the explicit runner stages in order:
+   preflight, correctness, precision, paired benchmark, and profile/diagnostic.
+6. Export a bundle with `make export-bundle`, perform the independent final
+   review, and only then update the task's promotion or serving-integration
+   record.
 
 The plan command is dry-run only. When the source, workload and runtime are
 ready, start the configured Humanize2 loop explicitly:

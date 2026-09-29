@@ -18,15 +18,15 @@ guessing which parts are machine-specific:
 ## Fresh clone
 
 ```bash
-git clone <your-github-url> infra-loop-kda
+git clone --recurse-submodules https://github.com/ixxxi-real/infra-loop-kda.git
 cd infra-loop-kda
 make setup
 ```
 
 `make setup` runs, in order, recursive submodule initialization, virtualenv
-creation, editable installation of the root package, metadata validation, and
-the CPU/control-plane tests. It does not contact a model registry or start a
-server.
+creation, installation of the root control-plane wheel, metadata validation,
+and the CPU/control-plane tests. It does not contact a model registry or start
+a server.
 
 Use `make doctor` to diagnose missing commands or uninitialized submodules.
 Use `make init` alone when the virtualenv is managed by another environment
@@ -56,13 +56,15 @@ Request it explicitly with `--with-humanize-installer` if you want it anyway.
 The project skill is tracked at `skills/kernel-optimization/SKILL.md`; upstream skills
 remain in their submodules. See [`skills/README.md`](../skills/README.md).
 
-Humanize2 is not installed into the control-plane virtualenv. If the new block
-is selected, install its pinned CLI explicitly:
+Humanize2 is not installed into the control-plane virtualenv. Install `uv`
+with the site's package manager if needed, then install the pinned CLI
+explicitly:
 
 ```bash
+uv --version
 uv tool install --editable external/humanize2
 git submodule update --init --recursive external/flowverse
-make humanize2-plan CONFIG=config/project.local.json TASK=prefill-kda
+make humanize2-plan CONFIG=config/project.local.json TASK=<unresolved-task-id>
 ```
 
 ## GPU task setup
