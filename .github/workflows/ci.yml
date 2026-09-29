@@ -69,7 +69,36 @@ jobs:
           python3 tools/k3ctl.py task-list --config config/project.example.json
 
       - name: Control-plane test suite
-        run: python3 -m unittest discover -s tests -v
+        run: |
+          set +e
+          python3 -m unittest discover -s tests -v 2>&1 | tee control-tests.log
+          rc=${PIPESTATUS[0]}
+          if [ "$rc" -ne 0 ]; then
+            python3 - <<'PY'
+          from pathlib import Path
+
+          lines = Path("control-tests.log").read_text(encoding="utf-8", errors="replace").splitlines()
+          interesting = [
+              line.strip()
+              for line in lines
+              if line.startswith(("FAIL:", "ERROR:", "FAILED", "Traceback (most recent call last)"))
+          ]
+          if not interesting:
+              interesting = [line.strip() for line in lines[-20:] if line.strip()]
+          for line in interesting[-20:]:
+              safe = line.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+              print(f"::error title=control-plane failure::{safe}")
+          PY
+          fi
+          exit "$rc"
+
+      - name: Upload control-plane failure log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: control-plane-test-log-py${{ matrix.python-version }}
+          path: control-tests.log
+          if-no-files-found: error
 
       - name: Prefill task suites (CPU only)
         run: |
@@ -197,7 +226,36 @@ jobs:
           grep -qE "^OK" hooks.log
 
       - name: Full suite with submodules present
-        run: python3 -m unittest discover -s tests -v
+        run: |
+          set +e
+          python3 -m unittest discover -s tests -v 2>&1 | tee submodules-tests.log
+          rc=${PIPESTATUS[0]}
+          if [ "$rc" -ne 0 ]; then
+            python3 - <<'PY'
+          from pathlib import Path
+
+          lines = Path("submodules-tests.log").read_text(encoding="utf-8", errors="replace").splitlines()
+          interesting = [
+              line.strip()
+              for line in lines
+              if line.startswith(("FAIL:", "ERROR:", "FAILED", "Traceback (most recent call last)"))
+          ]
+          if not interesting:
+              interesting = [line.strip() for line in lines[-20:] if line.strip()]
+          for line in interesting[-20:]:
+              safe = line.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+              print(f"::error title=submodule test failure::{safe}")
+          PY
+          fi
+          exit "$rc"
+
+      - name: Upload submodule failure log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: submodule-test-log
+          path: submodules-tests.log
+          if-no-files-found: error
 
 # A note for readers of CI output: the agent and loop tests use synthetic loop
 # directories and mock `claude`/`codex` executables. A fixture loop reaching
