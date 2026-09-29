@@ -72,9 +72,8 @@ It also does not install `hmz`, Claude/Codex CLIs or their credentials. Those
 are prerequisites only for an agent run; the GPU-specific setup is documented
 in [the fresh-clone walkthrough](docs/getting-started.md).
 
-The URL contains `ixxxi-real` because this checkout has not been assigned a
-GitHub owner yet. When publishing, replace it once with the organization or
-user that owns the repository. After a normal clone, the equivalent submodule
+The canonical remote is `https://github.com/ixxxi-real/infra-loop-kda.git`.
+After a normal clone, the equivalent submodule
 step is:
 
 ```bash

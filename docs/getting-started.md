@@ -20,7 +20,7 @@ plane bootstrap.
 
 ## 2. Clone the complete repository
 
-After this project is published, replace `ixxxi-real` with the GitHub owner:
+The canonical repository is:
 
 ```bash
 git clone --recurse-submodules https://github.com/ixxxi-real/infra-loop-kda.git
@@ -46,10 +46,10 @@ source .venv/bin/activate
 make verify
 ```
 
-`make setup` is idempotent. It creates `.venv`, installs this repository in
-editable mode, validates the public example configuration and runs the CPU
-test suite. `make verify` repeats the repository, metadata, test and workload
-example checks. Neither command launches Claude, Codex, a GPU job or a model.
+`make setup` is idempotent. It creates `.venv`, installs the control-plane
+wheel into it, validates the public example configuration and runs the CPU test
+suite. `make verify` repeats the repository, metadata, test and workload example
+checks. Neither command launches Claude, Codex, a GPU job or a model.
 
 Useful read-only commands are:
 
