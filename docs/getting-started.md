@@ -126,9 +126,24 @@ make agent-plan CONFIG=config/project.local.json TASK=<unresolved-task-id>
 ```
 
 The plan command is dry-run only. When the source, workload and runtime are
-ready, start the configured Humanize/KDA loop through the project CLI. Keep
-raw profiler output and sessions in the ignored runtime/evidence locations;
-commit only redacted manifests, source patches and conclusions.
+ready, start the configured Humanize2 loop explicitly:
+
+```bash
+make humanize2-plan CONFIG=config/project.local.json TASK=<unresolved-task-id>
+make humanize2-start CONFIG=config/project.local.json TASK=<unresolved-task-id>
+make humanize2-status CONFIG=config/project.local.json TASK=<unresolved-task-id>
+# when stopping or resuming:
+make humanize2-stop CONFIG=config/project.local.json TASK=<unresolved-task-id>
+python3 tools/k3ctl.py humanize2 start --resume \
+  --config config/project.local.json --task <unresolved-task-id>
+```
+
+Use `--resume` with the CLI form when continuing a stopped flow. The loop is
+not a complete serving campaign: correctness, precision, benchmark and profile
+stages remain explicit runner operations, and the site adapter must implement
+the protocol in [runner-interface.md](runner-interface.md). Keep raw profiler
+output and sessions in the ignored runtime/evidence locations; commit only
+redacted manifests, source patches and conclusions.
 
 ## 6. Add a new task
 
@@ -146,10 +161,11 @@ public task metadata to the repository. Private runtime paths, checkpoint
 locations, credentials, GPU UUIDs and raw profiler databases must never enter
 Git.
 
-## 7. Publish to GitHub
+## 7. Publish or fork the project
 
-Create an empty GitHub repository named `infra-loop-kda`, set its default branch
-to `main`, and add the remote locally:
+The canonical repository is already published at
+`https://github.com/ixxxi-real/infra-loop-kda`. If you fork it or move it to a
+different owner, update the remote and push the tracked tree:
 
 ```bash
 git remote add origin https://github.com/ixxxi-real/infra-loop-kda.git
@@ -167,9 +183,9 @@ operator action because it needs private hardware and credentials.
 
 ## Troubleshooting
 
-**`make setup` cannot fetch setuptools.** The editable install uses PEP 517 and
-needs `setuptools>=64`. Configure a package index or preinstall the backend,
-then rerun `make install`.
+**`make setup` cannot fetch setuptools.** The control-plane wheel build uses
+PEP 517 and needs `setuptools>=64`. Configure a package index or preinstall
+the backend, then rerun `make install`.
 
 **The doctor reports missing submodules.** Run the recursive submodule update
 from step 2. The control-plane tests can run without submodules, but agent
