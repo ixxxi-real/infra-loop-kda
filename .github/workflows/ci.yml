@@ -78,13 +78,12 @@ jobs:
           from pathlib import Path
 
           lines = Path("control-tests.log").read_text(encoding="utf-8", errors="replace").splitlines()
-          interesting = [
-              line.strip()
-              for line in lines
-              if line.startswith(("FAIL:", "ERROR:", "FAILED", "Traceback (most recent call last)"))
-          ]
+          interesting = []
+          for index, line in enumerate(lines):
+              if line.startswith(("FAIL:", "ERROR:", "FAILED")):
+                  interesting.extend(item.strip() for item in lines[index:index + 16] if item.strip())
           if not interesting:
-              interesting = [line.strip() for line in lines[-20:] if line.strip()]
+              interesting = [line.strip() for line in lines[-30:] if line.strip()]
           for line in interesting[-20:]:
               safe = line.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
               print(f"::error title=control-plane failure::{safe}")
@@ -235,13 +234,12 @@ jobs:
           from pathlib import Path
 
           lines = Path("submodules-tests.log").read_text(encoding="utf-8", errors="replace").splitlines()
-          interesting = [
-              line.strip()
-              for line in lines
-              if line.startswith(("FAIL:", "ERROR:", "FAILED", "Traceback (most recent call last)"))
-          ]
+          interesting = []
+          for index, line in enumerate(lines):
+              if line.startswith(("FAIL:", "ERROR:", "FAILED")):
+                  interesting.extend(item.strip() for item in lines[index:index + 16] if item.strip())
           if not interesting:
-              interesting = [line.strip() for line in lines[-20:] if line.strip()]
+              interesting = [line.strip() for line in lines[-30:] if line.strip()]
           for line in interesting[-20:]:
               safe = line.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
               print(f"::error title=submodule test failure::{safe}")
