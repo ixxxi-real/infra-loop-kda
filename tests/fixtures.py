@@ -298,6 +298,12 @@ def build_config(
     commits = dependency_commits or {}
     if source_commit is None:
         source_commit = source["base_commit"] if source else PLACEHOLDER_SHA
+    # The real project deliberately requires an isolated reviewer profile at
+    # ``~/.codex-bak``.  Test projects must not depend on whichever profile the
+    # developer happens to have on the host (or on a CI runner), so each
+    # fixture gets its own existing directory outside the fixture Git root.
+    fixture_codex_home = root.parent / (root.name + "-codex-bak")
+    fixture_codex_home.mkdir(parents=True, exist_ok=True)
     config: Dict[str, Any] = {
         "schema_version": 1,
         "project_id": "kimi-k3-kda",
@@ -341,6 +347,7 @@ def build_config(
                 "command": "codex",
                 "model": "gpt-6-astra",
                 "effort": "xhigh",
+                "codex_home": str(fixture_codex_home),
             },
             "humanize": {
                 "plugin_dir": "external/humanize",
